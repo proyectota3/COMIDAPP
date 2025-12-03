@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMIDAPP</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Enlace a tu CSS -->
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+<?php include "./controlador/fotoLocal.php"; ?>
+
+<nav class="navbar navbar-expand-lg bg-danger">
+    <div class="container-fluid">
+        <a class="navbar-brand text-white" href="./comidApp.php">
+            <i class="fa-solid fa-burger"></i> ComidAPP
+        </a>
+
+        <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" 
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+            <!-- ⭐ UL PRINCIPAL -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link text-white" href="./pages/misCompras.html">Mis compras</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="./pages/contacto.php">Contacto</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="./pages/descargar.html">Descargar</a></li>
+            </ul>
+
+            <!-- ⭐ ICONOS A LA DERECHA -->
+            <ul class="navbar-nav d-flex align-items-center me-3">
+                <!-- Icono carrito -->
+                <li class="nav-item me-3">
+                    <a class="nav-link text-white" href="./pages/carrito.php">
+                        <i class="fa-solid fa-cart-shopping fa-lg"></i>
+                    </a>
+                </li>
+
+                <!-- Icono usuario -->
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./pages/perfil.php">
+                        <i class="fa-solid fa-user fa-lg"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- ⭐ BUSCADOR -->
+            <form class="d-flex position-relative" role="search">
+                <input class="form-control me-2" id="buscar" type="search" placeholder="Buscar sucursal" aria-label="Search">
+                <ul id="resultados" class="list-group position-absolute mt-2" style="z-index: 1000; width: 100%;"></ul>
+            </form>
+
+        </div>
+    </div>
+</nav>
+
+
+<main class="flex-grow-1">
+    <div class="container mt-4">
+        <!-- Carrusel -->
+        <div id="foodCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                <?php
+                $index = 0;
+                foreach ($sucursales as $row) {
+                    echo '<button type="button" data-bs-target="#foodCarousel" data-bs-slide-to="' . $index . '"' . ($index === 0 ? ' class="active"' : '') . ' aria-label="Slide ' . ($index + 1) . '"></button>';
+                    $index++;
+                }
+                ?>
+            </div>
+            <div class="carousel-inner">
+                <?php
+                $index = 0;
+                foreach ($sucursales as $row) {
+                    ?>
+                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                        <img src="<?php echo htmlspecialchars($row['Foto']); ?>" class="d-block w-100" alt="Foto del carrito">
+                        <div class="carousel-caption d-block">
+                            <p class="store-name fw-bold text-dark"><?php echo htmlspecialchars($row['Nombre']); ?></p>
+                            <p class="store-address text-dark"><?php echo htmlspecialchars($row['Direccion']); ?></p>
+                        </div>
+                    </div>
+                    <?php
+                    $index++;
+                }
+                ?>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#foodCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#foodCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
+        </div>
+
+        <!-- Lista de sucursales con modales -->
+        <div class="store-list mt-4">
+            <?php foreach ($sucursales as $row): ?>
+                <div class="store">
+                    <img src="<?php echo htmlspecialchars($row['Foto']); ?>" alt="<?php echo htmlspecialchars($row['Nombre']); ?>" class="store-img">
+                    <p class="store-name"><?php echo htmlspecialchars($row['Nombre']); ?></p>
+                    <p class="store-address"><?php echo htmlspecialchars($row['Direccion']); ?></p>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#productModal<?php echo $row['ID']; ?>">
+                        Ver productos
+                    </button>
+                </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="productModal<?php echo $row['ID']; ?>" tabindex="-1" aria-labelledby="productModalLabel<?php echo $row['ID']; ?>" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="productModalLabel<?php echo $row['ID']; ?>">
+                                    Productos de <?php echo htmlspecialchars($row['Nombre']); ?>
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>Dirección:</strong> <?php echo htmlspecialchars($row['Direccion']); ?></p>
+                                <p><strong>Menú:</strong></p>
+                    <ul >
+    <li>
+        Producto 1 - $100 
+        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+            <input type="hidden" name="producto" value="Producto 1">
+            <input type="hidden" name="precio" value="100">
+            <button class="btn btn-sm btn-primary">Agregar</button>
+        </form>
+    </li>
+
+    <li>
+        Producto 2 - $150 
+        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+            <input type="hidden" name="producto" value="Producto 2">
+            <input type="hidden" name="precio" value="150">
+            <button class="btn btn-sm btn-primary">Agregar</button>
+        </form>
+    </li>
+
+    <li>
+        Producto 3 - $200 
+        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+            <input type="hidden" name="producto" value="Producto 3">
+            <input type="hidden" name="precio" value="200">
+            <button class="btn btn-sm btn-primary">Agregar</button>
+        </form>
+    </li>
+</ul>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</main>
+
+<div class="text-center py-1 bg-warning">
+    <h2>¿Quieres ser parte de nosotros?</h2>
+    <p>Únete a ComidAPP y descubre más sobre nuestras oportunidades y beneficios.</p>
+    <a href="./pages/contacto.php" class="btn btn-primary mt-2">¡Únete ahora!</a>
+</div>
+
+<footer class="footer bg-danger text-center text-white py-3">
+    <div class="container">
+        <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+    </div>
+</footer>
+
+<script src="buscador.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
