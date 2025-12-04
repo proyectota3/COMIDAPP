@@ -16,7 +16,7 @@
 
 <nav class="navbar navbar-expand-lg bg-danger">
     <div class="container-fluid">
-        <a class="navbar-brand text-white" href="./comidApp.php">
+        <a class="navbar-brand text-white" href="./indexApp.php">
             <i class="fa-solid fa-burger"></i> ComidAPP
         </a>
 
