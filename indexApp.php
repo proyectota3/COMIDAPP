@@ -14,8 +14,27 @@
 <body>
 <?php include "./controlador/fotoLocal.php"; ?>
 
+<?php
+session_start(); // Importante: al inicio del archivo donde está el nav
+?>
+
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
+// Aseguramos que la sesión esté iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
 <nav class="navbar navbar-expand-lg bg-danger">
     <div class="container-fluid">
+
+        <!-- LOGO -->
         <a class="navbar-brand text-white" href="./indexApp.php">
             <i class="fa-solid fa-burger"></i> ComidAPP
         </a>
@@ -28,39 +47,76 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
 
-            <!-- ⭐ UL PRINCIPAL -->
+            <!-- MENÚ IZQUIERDO -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link text-white" href="./pages/misCompras.html">Mis compras</a></li>
-                <li class="nav-item"><a class="nav-link text-white" href="./pages/contacto.php">Contacto</a></li>
-                <li class="nav-item"><a class="nav-link text-white" href="./pages/descargar.html">Descargar</a></li>
-            </ul>
-
-            <!-- ⭐ ICONOS A LA DERECHA -->
-            <ul class="navbar-nav d-flex align-items-center me-3">
-                <!-- Icono carrito -->
-                <li class="nav-item me-3">
-                    <a class="nav-link text-white" href="./pages/carrito.php">
-                        <i class="fa-solid fa-cart-shopping fa-lg"></i>
-                    </a>
-                </li>
-
-                <!-- Icono usuario -->
+                <!-- Siempre visibles -->
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="./pages/perfil.php">
-                        <i class="fa-solid fa-user fa-lg"></i>
-                    </a>
+                    <a class="nav-link text-white" href="./pages/contacto.php">Contacto</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./pages/descargar.html">Descargar</a>
+                </li>
+
+                <!-- Cliente: Mis compras (idRol = 3) -->
+                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./pages/misCompras.php">Mis compras</a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Empresa: Mis ventas (idRol = 2) -->
+                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./pages/misVentas.php">Mis ventas</a>
+                    </li>
+                <?php endif; ?>
             </ul>
 
-            <!-- ⭐ BUSCADOR -->
-            <form class="d-flex position-relative" role="search">
-                <input class="form-control me-2" id="buscar" type="search" placeholder="Buscar sucursal" aria-label="Search">
-                <ul id="resultados" class="list-group position-absolute mt-2" style="z-index: 1000; width: 100%;"></ul>
+            <!-- BUSCADOR CENTRADO -->
+            <form class="d-flex mx-auto position-relative" style="width: 35%;" role="search">
+                <input class="form-control" id="buscar" type="search" placeholder="Buscar sucursal" aria-label="Search">
+                <ul id="resultados" class="list-group position-absolute mt-2" 
+                    style="z-index: 1000; width: 100%;"></ul>
             </form>
+
+            <!-- ZONA DERECHA -->
+            <ul class="navbar-nav d-flex align-items-center ms-3">
+
+                <?php if (isset($_SESSION['id'])): ?>
+                    <!-- LOGUEADO (cliente o empresa) -->
+
+                    <!-- Perfil + nombre / mail -->
+                    <li class="nav-item me-3">
+                        <a class="nav-link text-white d-flex align-items-center" href="./pages/perfil.php">
+                            <i class="fa-solid fa-user fa-lg me-1"></i>
+                            <span><?php echo htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['user']); ?></span>
+                        </a>
+                    </li>
+
+                    <!-- Cerrar sesión -->
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="./logout.php">
+                            Cerrar sesión
+                        </a>
+                    </li>
+
+                <?php else: ?>
+                    <!-- VISITANTE -->
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="./loginApp.php">
+                            Iniciar sesión
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+            </ul>
 
         </div>
     </div>
 </nav>
+
+
+
 
 
 <main class="flex-grow-1">
