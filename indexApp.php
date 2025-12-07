@@ -54,7 +54,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <a class="nav-link text-white" href="./pages/contacto.php">Contacto</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="./pages/descargar.html">Descargar</a>
+                    <a class="nav-link text-white" href="./pages/descargar.php">Descargar</a>
                 </li>
 
                 <!-- Cliente: Mis compras (idRol = 3) -->

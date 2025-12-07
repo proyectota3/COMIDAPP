@@ -14,6 +14,12 @@
     </head>
     
 <body>
+    <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -106,14 +112,32 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 </nav>
 
+
     
-    <header class="bg-light py-5">
-       
-    </header>
-
-    <main class="container my-5 flex-grow-1">
-
+    <main class="container mt-5 flex-grow-1"> <!-- El main toma el espacio disponible -->
+        <h1 class="text-center mb-4">Descarga la App</h1>
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Descargar para Android</h5>
+                        <p class="card-text">Disponible para dispositivos Android.</p>
+                        <a href="#" class="btn btn-primary btn-block">Descargar APK</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Descargar para iOS</h5>
+                        <p class="card-text">Disponible para dispositivos iOS.</p>
+                        <a href="#" class="btn btn-primary btn-block">Descargar en App Store</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
+
     <footer class="footer bg-danger text-center text-white py-3">
         <div class="container">
             <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
