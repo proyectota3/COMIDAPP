@@ -1,57 +1,41 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     const inputBuscar = document.getElementById('buscar');
-    const resultados = document.getElementById('resultados');
+    const stores = Array.from(document.querySelectorAll('.store'));
 
-    if (!inputBuscar || !resultados) {
-        console.warn("No se encontró el input #buscar o la lista #resultados.");
+    // Si no hay buscador o no hay carritos, salimos
+    if (!inputBuscar || stores.length === 0) {
+        console.warn("No se encontró el input #buscar o no hay elementos .store en esta página.");
         return;
     }
 
-    // Detectar si estamos dentro de /pages/ o en la raíz
-    const estaEnPages = window.location.pathname.includes('/pages/');
-    const basePath = estaEnPages ? '../' : './';
+    // Guardamos el display original de cada .store para poder restaurarlo
+    const displayOriginal = new Map();
+    stores.forEach(store => {
+        displayOriginal.set(store, getComputedStyle(store).display || 'block');
+    });
 
     inputBuscar.addEventListener('input', function() {
-        const query = this.value.trim();
+        const texto = this.value.trim().toLowerCase();
 
-        if (query.length > 2) {
-
-            fetch(`${basePath}controlador/buscadorComida.php?q=${encodeURIComponent(query)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    resultados.innerHTML = '';
-
-                    // Si vino un error desde PHP
-                    if (data.error) {
-                        console.error('Error desde PHP:', data.error);
-                        resultados.innerHTML = '<li class="list-group-item text-danger">Error en la búsqueda</li>';
-                        return;
-                    }
-
-                    if (Array.isArray(data) && data.length > 0) {
-                        data.forEach(item => {
-                            const li = document.createElement('li');
-                            li.textContent = `${item.Nombre} - ${item.Direccion}`;
-                            li.classList.add('list-group-item');
-                            resultados.appendChild(li);
-                        });
-                    } else {
-                        resultados.innerHTML = '<li class="list-group-item">Sin resultados</li>';
-                    }
-                })
-                .catch(err => {
-                    console.error("Error en la búsqueda:", err);
-                    resultados.innerHTML = '<li class="list-group-item text-danger">Error en la búsqueda</li>';
-                });
-
-        } else {
-            resultados.innerHTML = ''; // limpiar si escribe poco
+        // Si no hay texto, mostramos todos los carritos
+        if (texto === '') {
+            stores.forEach(store => {
+                store.style.display = displayOriginal.get(store);
+            });
+            return;
         }
+
+        // Filtramos según el nombre del carrito (.store-name)
+        stores.forEach(store => {
+            const nombreEl = store.querySelector('.store-name');
+            const nombre = (nombreEl ? nombreEl.textContent : '').toLowerCase();
+
+            if (nombre.includes(texto)) {
+                store.style.display = displayOriginal.get(store); // mostrar
+            } else {
+                store.style.display = 'none'; // ocultar
+            }
+        });
     });
 });
