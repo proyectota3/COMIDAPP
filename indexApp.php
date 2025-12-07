@@ -31,6 +31,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 ?>
 
+<?php
+// contador del carrito
+$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
+?>
+
 <nav class="navbar navbar-expand-lg bg-danger">
     <div class="container-fluid">
 
@@ -49,27 +54,34 @@ if (session_status() === PHP_SESSION_NONE) {
 
             <!-- MENÚ IZQUIERDO -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
                 <!-- Siempre visibles -->
                 <li class="nav-item">
                     <a class="nav-link text-white" href="./pages/contacto.php">Contacto</a>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link text-white" href="./pages/descargar.php">Descargar</a>
                 </li>
 
-                <!-- Cliente: Mis compras (idRol = 3) -->
+                <!-- Cliente: Mis compras (rol = 3) -->
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./pages/misCompras.php">Mis compras</a>
                     </li>
                 <?php endif; ?>
 
-                <!-- Empresa: Mis ventas (idRol = 2) -->
+                <!-- Empresa: Mis locales + Mis ventas (rol = 2) -->
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./pages/misLocales.php">Mis locales</a>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./pages/misVentas.php">Mis ventas</a>
                     </li>
                 <?php endif; ?>
+
             </ul>
 
             <!-- BUSCADOR CENTRADO -->
@@ -82,10 +94,24 @@ if (session_status() === PHP_SESSION_NONE) {
             <!-- ZONA DERECHA -->
             <ul class="navbar-nav d-flex align-items-center ms-3">
 
-                <?php if (isset($_SESSION['id'])): ?>
-                    <!-- LOGUEADO (cliente o empresa) -->
+                <!-- Carrito (solo clientes) -->
+                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                    <li class="nav-item me-3">
+                        <a class="nav-link position-relative text-white" href="./pages/verCarrito.php">
+                            <i class="fa-solid fa-cart-shopping fa-lg"></i>
 
-                    <!-- Perfil + nombre / mail -->
+                            <?php if ($cantidadCarrito > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                                    <?php echo $cantidadCarrito; ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Usuario logueado -->
+                <?php if (isset($_SESSION['id'])): ?>
+
                     <li class="nav-item me-3">
                         <a class="nav-link text-white d-flex align-items-center" href="./pages/perfil.php">
                             <i class="fa-solid fa-user fa-lg me-1"></i>
@@ -93,7 +119,6 @@ if (session_status() === PHP_SESSION_NONE) {
                         </a>
                     </li>
 
-                    <!-- Cerrar sesión -->
                     <li class="nav-item">
                         <a class="btn btn-outline-light" href="./logout.php">
                             Cerrar sesión
@@ -101,12 +126,14 @@ if (session_status() === PHP_SESSION_NONE) {
                     </li>
 
                 <?php else: ?>
-                    <!-- VISITANTE -->
+
+                    <!-- Invitado -->
                     <li class="nav-item">
                         <a class="btn btn-outline-light" href="./loginApp.php">
                             Iniciar sesión
                         </a>
                     </li>
+
                 <?php endif; ?>
 
             </ul>
@@ -114,6 +141,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </div>
 </nav>
+
 
 
 
