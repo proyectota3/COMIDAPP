@@ -4,7 +4,6 @@
 // Si el ID no existe en la tabla, responde un mensaje indicando que no se encontró.
 
 
-
 <?php
 session_start();
 require_once '../modelo/connectionComidApp.php';
@@ -23,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $db = new DatabaseComidApp();
     $conn = $db->getConnection();
 
-    // Consulta segura (evita SQL Injection)
-    $sql = "SELECT * FROM usuariosweb WHERE Mail = :mail AND Pass = :pass";
+    // OJO: la columna se llama "pass" y "idRol"
+    $sql = "SELECT * FROM usuariosweb WHERE Mail = :mail AND pass = :pass";
     $stmt = $conn->prepare($sql);
     $stmt->bindParam(':mail', $user);
     $stmt->bindParam(':pass', $pass);
@@ -35,10 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($resultado) {
 
         // Guardamos datos útiles de sesión
-        $_SESSION['id'] = $resultado['ID'];
-        $_SESSION['user'] = $resultado['Mail'];
-        $_SESSION['rol'] = $resultado['Rol'] ?? null;
-        $_SESSION['nombre'] = $resultado['Nombre'] ?? null;
+        $_SESSION['id']     = $resultado['ID'];
+        $_SESSION['user']   = $resultado['Mail'];
+        $_SESSION['rol']    = $resultado['idRol'];      // 👈 AQUÍ EL ROL CORRECTO
+        $_SESSION['nombre'] = $resultado['Nombre'];
 
         header("Location: ../indexApp.php");
         exit();

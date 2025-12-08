@@ -1,36 +1,41 @@
-document.getElementById('buscar').addEventListener('input', function() {
-    const query = this.value.trim();
-    const resultados = document.getElementById('resultados');
+document.addEventListener("DOMContentLoaded", () => {
 
-    if (query.length > 2) { // Solo busca si hay más de 2 caracteres
-        fetch(`comidApp.php?q=${encodeURIComponent(query)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resultados.innerHTML = ''; // Limpia resultados anteriores
+    const inputBuscar = document.getElementById('buscar');
+    const stores = Array.from(document.querySelectorAll('.store'));
 
-                if (data.length > 0) {
-                    const fragment = document.createDocumentFragment();
-                    data.forEach(item => {
-                        const li = document.createElement('li');
-                        li.textContent = `${item.Nombre} - ${item.Direccion}`;
-                        li.classList.add('list-group-item');
-                        fragment.appendChild(li);
-                    });
-                    resultados.appendChild(fragment);
-                } else {
-                    resultados.innerHTML = '<li class="list-group-item">Sin resultados</li>';
-                }
-            })
-            .catch(error => {
-                console.error('Error en la búsqueda:', error);
-                resultados.innerHTML = '<li class="list-group-item text-danger">Error en la búsqueda</li>';
-            });
-    } else {
-        resultados.innerHTML = ''; // Limpia si el input es corto
+    // Si no hay buscador o no hay carritos, salimos
+    if (!inputBuscar || stores.length === 0) {
+        console.warn("No se encontró el input #buscar o no hay elementos .store en esta página.");
+        return;
     }
+
+    // Guardamos el display original de cada .store para poder restaurarlo
+    const displayOriginal = new Map();
+    stores.forEach(store => {
+        displayOriginal.set(store, getComputedStyle(store).display || 'block');
+    });
+
+    inputBuscar.addEventListener('input', function() {
+        const texto = this.value.trim().toLowerCase();
+
+        // Si no hay texto, mostramos todos los carritos
+        if (texto === '') {
+            stores.forEach(store => {
+                store.style.display = displayOriginal.get(store);
+            });
+            return;
+        }
+
+        // Filtramos según el nombre del carrito (.store-name)
+        stores.forEach(store => {
+            const nombreEl = store.querySelector('.store-name');
+            const nombre = (nombreEl ? nombreEl.textContent : '').toLowerCase();
+
+            if (nombre.includes(texto)) {
+                store.style.display = displayOriginal.get(store); // mostrar
+            } else {
+                store.style.display = 'none'; // ocultar
+            }
+        });
+    });
 });
