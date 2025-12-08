@@ -6,25 +6,48 @@ if (!isset($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
 
-// Verificar datos obligatorios
-if (isset($_POST['producto']) && isset($_POST['precio'])) {
-
-    // Datos obligatorios
-    $producto = $_POST['producto'];
-    $precio   = $_POST['precio'];
-
-    // Datos opcionales (por si vienen)
-    $codigoArt = $_POST['codigoArt'] ?? null;
-    $idLocal   = $_POST['idLocal'] ?? null;
-
-    $_SESSION['carrito'][] = [
-        'producto'  => $producto,
-        'precio'    => $precio,
-        'codigoArt' => $codigoArt,  // ahora queda guardado
-        'idLocal'   => $idLocal     // ahora queda guardado
-    ];
+// Guardar también el local del carrito
+if (!isset($_SESSION['local_carrito'])) {
+    $_SESSION['local_carrito'] = null;
 }
 
-// SIEMPRE REDIRIGIR
-header("Location: ../indexApp.php");
+// Verificar datos obligatorios
+if (
+    !isset($_POST['producto']) ||
+    !isset($_POST['precio'])   ||
+    !isset($_POST['idLocal'])
+) {
+    // Faltan datos, volver al index con error
+    header("Location: ../indexApp.php?error=datos_faltantes");
+    exit();
+}
+
+// Datos del POST
+$producto  = $_POST['producto'];
+$precio    = (float) $_POST['precio'];
+$idLocal   = (int) $_POST['idLocal'];
+$codigoArt = $_POST['codigoArt'] ?? null;
+
+// Si el carrito aún no tiene local asociado, se lo asignamos ahora
+if ($_SESSION['local_carrito'] === null) {
+    $_SESSION['local_carrito'] = $idLocal;
+}
+
+// Si el usuario intenta agregar un producto de otro local, no dejamos
+if ($_SESSION['local_carrito'] !== $idLocal) {
+    // Podés cambiar el comportamiento: mostrar mensaje, limpiar carrito, etc.
+    header("Location: ../indexApp.php?error=local_distinto");
+    exit();
+}
+
+// Agregar al carrito
+$_SESSION['carrito'][] = [
+    'producto'  => $producto,
+    'precio'    => $precio,
+    'codigoArt' => $codigoArt,
+    'idLocal'   => $idLocal
+];
+
+// Redirigir siempre
+header("Location: ../indexApp.php?ok=agregado");
 exit();

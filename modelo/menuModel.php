@@ -10,18 +10,33 @@ class MenuModel
         $this->db = $pdo;
     }
 
-    /* ======= MÉTODOS PARA EMPRESA ======= */
+    /* ====== PARA INDEX (CLIENTE) ====== */
 
-    // Verificar que el local pertenece a la empresa
-    public function getLocalDeEmpresa($idLocal, $idEmp)
+    // Menú solo activo para mostrar en indexApp
+    public function getMenuClienteByLocal($idLocal)
     {
-        $sql = "SELECT * FROM local WHERE ID = ? AND IDEmp = ?";
+        $sql = "SELECT a.Nombre, la.Precio
+                FROM local_articulo la
+                JOIN articulos a ON la.CodigoArticulo = a.Codigo
+                WHERE la.IDLoc = ? AND la.Activo = 1
+                ORDER BY a.Nombre";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$idLocal, $idEmp]);
+        $stmt->execute([$idLocal]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /* ====== PARA ADMINISTRAR MENÚ (EMPRESA) ====== */
+
+    // Info del local (para título, etc.)
+    public function getLocalById($idLocal)
+    {
+        $sql = "SELECT * FROM local WHERE ID = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$idLocal]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Menú completo de un local (admin ve activos e inactivos)
+    // Menú completo del local (incluye activos/inactivos)
     public function getMenuAdminByLocal($idLocal)
     {
         $sql = "SELECT la.ID, a.Nombre, la.Precio, la.Activo
@@ -34,15 +49,17 @@ class MenuModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Lista de todos los artículos del catálogo
+    // Lista de artículos del catálogo general
     public function getArticulos()
     {
-        $sql = "SELECT Codigo, Nombre FROM articulos ORDER BY Nombre";
+        $sql = "SELECT Codigo, Nombre
+                FROM articulos
+                ORDER BY Nombre";
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Actualizar una línea del menú
+    // Actualizar precio y estado de una línea
     public function actualizarLinea($idLinea, $idLocal, $precio, $activo)
     {
         $sql = "UPDATE local_articulo
@@ -52,7 +69,16 @@ class MenuModel
         return $stmt->execute([$precio, $activo, $idLinea, $idLocal]);
     }
 
-    // Agregar un nuevo artículo al menú del local
+    // Eliminar una línea del menú
+    public function eliminarLinea($idLinea, $idLocal)
+    {
+        $sql = "DELETE FROM local_articulo
+                WHERE ID = ? AND IDLoc = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$idLinea, $idLocal]);
+    }
+
+    // Agregar nuevo artículo al menú
     public function agregarArticuloAlMenu($idLocal, $codigoArticulo, $precio)
     {
         $sql = "INSERT INTO local_articulo (IDLoc, CodigoArticulo, Precio, Activo)
@@ -60,20 +86,4 @@ class MenuModel
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$idLocal, $codigoArticulo, $precio]);
     }
-
-    /* ======= MÉTODOS PARA CLIENTE (indexApp) ======= */
-
-    // Menú solo activo (para mostrar en indexApp)
-    public function getMenuClienteByLocal($idLocal)
-    {
-        $sql = "SELECT a.Nombre, la.Precio
-                FROM local_articulo la
-                JOIN articulos a ON la.CodigoArticulo = a.Codigo
-                WHERE la.IDLoc = ? AND la.Activo = 1
-                ORDER BY a.Nombre";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$idLocal]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 }
-s

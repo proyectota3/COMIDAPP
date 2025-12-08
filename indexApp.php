@@ -1,16 +1,3 @@
-<?php
-session_start();
-
-// Trae sucursales (y probablemente $pdo) 
-include "./controlador/fotoLocal.php";
-
-// Modelo de menú
-require_once "modelo/menuModel.php";
-$menuModel = new MenuModel($pdo);
-
-// contador del carrito
-$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
-?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,6 +12,41 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
     <link href="styles.css" rel="stylesheet">
 </head>
 <body>
+
+<?php include "./controlador/fotoLocal.php"; ?>
+
+<?php
+// 👉 NUEVO: crear PDO a partir de tu clase de conexión y cargar el modelo del menú
+require_once "./modelo/connectionComidApp.php";
+require_once "./modelo/menuModel.php";
+
+$dbComidApp = new DatabaseComidApp();
+$pdo = $dbComidApp->getConnection();
+
+$menuModel = new MenuModel($pdo);
+?>
+
+<?php
+session_start(); // Importante: al inicio del archivo donde está el nav
+?>
+
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
+// Aseguramos que la sesión esté iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
+// contador del carrito
+$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
+?>
 
 <nav class="navbar navbar-expand-lg bg-danger">
     <div class="container-fluid">
@@ -188,18 +210,20 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                 <div class="modal fade" id="productModal<?php echo $row['ID']; ?>" tabindex="-1" aria-labelledby="productModalLabel<?php echo $row['ID']; ?>" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
+
                             <div class="modal-header">
                                 <h5 class="modal-title" id="productModalLabel<?php echo $row['ID']; ?>">
                                     Productos de <?php echo htmlspecialchars($row['Nombre']); ?>
                                 </h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
+
                             <div class="modal-body">
                                 <p><strong>Dirección:</strong> <?php echo htmlspecialchars($row['Direccion']); ?></p>
                                 <p><strong>Menú:</strong></p>
 
                                 <?php
-                                // Traer menú activo de este local
+                                // 👉 AHORA: menú dinámico desde la BD
                                 $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
                                 ?>
 
@@ -227,12 +251,15 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                                 <?php endif; ?>
 
                             </div>
+
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                             </div>
+
                         </div>
                     </div>
                 </div>
+
             <?php endforeach; ?>
         </div>
     </div>
