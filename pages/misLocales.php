@@ -63,6 +63,9 @@ $cantidadCarrito = $data["cantidadCarrito"];
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misVentas.php">Mis ventas</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misLocales.php">Mis ventas</a>
+                    </li>
                 <?php endif; ?>
             </ul>
 
