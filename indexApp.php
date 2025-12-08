@@ -1,3 +1,16 @@
+<?php
+session_start();
+
+// Trae sucursales (y probablemente $pdo) 
+include "./controlador/fotoLocal.php";
+
+// Modelo de menú
+require_once "modelo/menuModel.php";
+$menuModel = new MenuModel($pdo);
+
+// contador del carrito
+$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -12,29 +25,6 @@
     <link href="styles.css" rel="stylesheet">
 </head>
 <body>
-<?php include "./controlador/fotoLocal.php"; ?>
-
-<?php
-session_start(); // Importante: al inicio del archivo donde está el nav
-?>
-
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
-// Aseguramos que la sesión esté iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
-// contador del carrito
-$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
-?>
 
 <nav class="navbar navbar-expand-lg bg-danger">
     <div class="container-fluid">
@@ -142,11 +132,6 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
     </div>
 </nav>
 
-
-
-
-
-
 <main class="flex-grow-1">
     <div class="container mt-4">
         <!-- Carrusel -->
@@ -212,34 +197,34 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                             <div class="modal-body">
                                 <p><strong>Dirección:</strong> <?php echo htmlspecialchars($row['Direccion']); ?></p>
                                 <p><strong>Menú:</strong></p>
-                    <ul >
-    <li>
-        Producto 1 - $100 
-        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-            <input type="hidden" name="producto" value="Producto 1">
-            <input type="hidden" name="precio" value="100">
-            <button class="btn btn-sm btn-primary">Agregar</button>
-        </form>
-    </li>
 
-    <li>
-        Producto 2 - $150 
-        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-            <input type="hidden" name="producto" value="Producto 2">
-            <input type="hidden" name="precio" value="150">
-            <button class="btn btn-sm btn-primary">Agregar</button>
-        </form>
-    </li>
+                                <?php
+                                // Traer menú activo de este local
+                                $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
+                                ?>
 
-    <li>
-        Producto 3 - $200 
-        <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-            <input type="hidden" name="producto" value="Producto 3">
-            <input type="hidden" name="precio" value="200">
-            <button class="btn btn-sm btn-primary">Agregar</button>
-        </form>
-    </li>
-</ul>
+                                <?php if (empty($menuLocal)): ?>
+                                    <p>Este local aún no tiene productos cargados.</p>
+                                <?php else: ?>
+                                    <ul class="list-group">
+                                        <?php foreach ($menuLocal as $prod): ?>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <?php echo htmlspecialchars($prod['Nombre']); ?> - 
+                                                    $<?php echo htmlspecialchars($prod['Precio']); ?>
+                                                </span>
+
+                                                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                                                    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+                                                        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
+                                                        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
+                                                        <button class="btn btn-sm btn-primary">Agregar</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
 
                             </div>
                             <div class="modal-footer">
