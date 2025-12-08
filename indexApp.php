@@ -222,35 +222,45 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                                 <p><strong>Dirección:</strong> <?php echo htmlspecialchars($row['Direccion']); ?></p>
                                 <p><strong>Menú:</strong></p>
 
-                                <?php
-                                // 👉 AHORA: menú dinámico desde la BD
-                                $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
-                                ?>
+                               <?php
+// 👉 AHORA: menú dinámico desde la BD
+$menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
+?>
 
-                                <?php if (empty($menuLocal)): ?>
-                                    <p>Este local aún no tiene productos cargados.</p>
-                                <?php else: ?>
-                                    <ul class="list-group">
-                                        <?php foreach ($menuLocal as $prod): ?>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>
-                                                    <?php echo htmlspecialchars($prod['Nombre']); ?> - 
-                                                    $<?php echo htmlspecialchars($prod['Precio']); ?>
-                                                </span>
+<?php if (empty($menuLocal)): ?>
+    <p>Este local aún no tiene productos cargados.</p>
+<?php else: ?>
+    <ul class="list-group">
+        <?php foreach ($menuLocal as $prod): ?>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    <?php echo htmlspecialchars($prod['Nombre']); ?> - 
+                    $<?php echo htmlspecialchars($prod['Precio']); ?>
+                </span>
 
-                                                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
-                                                    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-                                                        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
-                                                        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
-                                                        <button class="btn btn-sm btn-primary">Agregar</button>
-                                                    </form>
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
+                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+                        <!-- Datos del producto -->
+                        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
+                        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
 
-                            </div>
+                        <!-- 🔴 IMPORTANTE: ID DEL LOCAL (VIENE DE $row['ID']) -->
+                        <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
+
+                        <!-- (Opcional) si tenés el código del artículo en la consulta -->
+                        <?php if (isset($prod['Codigo'])): ?>
+                            <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
+                        <?php endif; ?>
+
+                        <button class="btn btn-sm btn-primary">Agregar</button>
+                    </form>
+                <?php endif; ?>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+
+</div>
 
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

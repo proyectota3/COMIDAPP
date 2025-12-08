@@ -15,10 +15,11 @@ class MenuModel
     // Menú solo activo para mostrar en indexApp
     public function getMenuClienteByLocal($idLocal)
     {
-        $sql = "SELECT a.Nombre, la.Precio
-                FROM local_articulo la
-                JOIN articulos a ON la.CodigoArticulo = a.Codigo
-                WHERE la.IDLoc = ? AND la.Activo = 1
+        $sql = "SELECT a.Nombre, v.Precio
+                FROM vende v
+                JOIN articulos a ON v.CodigoArt = a.Codigo
+                WHERE v.IDLoc = ? 
+                  AND v.Activo = 1
                 ORDER BY a.Nombre";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$idLocal]);
@@ -39,10 +40,10 @@ class MenuModel
     // Menú completo del local (incluye activos/inactivos)
     public function getMenuAdminByLocal($idLocal)
     {
-        $sql = "SELECT la.ID, a.Nombre, la.Precio, la.Activo
-                FROM local_articulo la
-                JOIN articulos a ON la.CodigoArticulo = a.Codigo
-                WHERE la.IDLoc = ?
+        $sql = "SELECT v.ID, a.Nombre, v.Precio, v.Activo
+                FROM vende v
+                JOIN articulos a ON v.CodigoArt = a.Codigo
+                WHERE v.IDLoc = ?
                 ORDER BY a.Nombre";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$idLocal]);
@@ -62,7 +63,7 @@ class MenuModel
     // Actualizar precio y estado de una línea
     public function actualizarLinea($idLinea, $idLocal, $precio, $activo)
     {
-        $sql = "UPDATE local_articulo
+        $sql = "UPDATE vende
                 SET Precio = ?, Activo = ?
                 WHERE ID = ? AND IDLoc = ?";
         $stmt = $this->db->prepare($sql);
@@ -72,7 +73,7 @@ class MenuModel
     // Eliminar una línea del menú
     public function eliminarLinea($idLinea, $idLocal)
     {
-        $sql = "DELETE FROM local_articulo
+        $sql = "DELETE FROM vende
                 WHERE ID = ? AND IDLoc = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$idLinea, $idLocal]);
@@ -81,8 +82,8 @@ class MenuModel
     // Agregar nuevo artículo al menú
     public function agregarArticuloAlMenu($idLocal, $codigoArticulo, $precio)
     {
-        $sql = "INSERT INTO local_articulo (IDLoc, CodigoArticulo, Precio, Activo)
-                VALUES (?, ?, ?, 1)";
+        $sql = "INSERT INTO vende (IDLoc, CodigoArt, Precio, Activo, FechaIniPrecio, FechaFinPrecio)
+                VALUES (?, ?, ?, 1, CURRENT_DATE, NULL)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$idLocal, $codigoArticulo, $precio]);
     }
