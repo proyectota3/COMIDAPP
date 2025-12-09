@@ -262,17 +262,20 @@ $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
 
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
                     <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-                        <!-- Datos del producto -->
+                        <!-- Nombre del producto -->
                         <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
+
+                        <!-- Precio unitario -->
                         <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
 
-                        <!-- 🔴 IMPORTANTE: ID DEL LOCAL (VIENE DE $row['ID']) -->
+                        <!-- ID DEL LOCAL (VIENE DE $row['ID']) -->
                         <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
 
-                        <!-- (Opcional) si tenés el código del artículo en la consulta -->
-                        <?php if (isset($prod['Codigo'])): ?>
-                            <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
-                        <?php endif; ?>
+                        <!-- 🔴 CÓDIGO DEL ARTÍCULO (OBLIGATORIO PARA COMPRA/VENDE) -->
+                        <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
+
+                        <!-- Cantidad (por ahora siempre 1) -->
+                        <input type="hidden" name="cantidad" value="1">
 
                         <button class="btn btn-sm btn-primary">Agregar</button>
                     </form>
@@ -281,6 +284,7 @@ $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
         <?php endforeach; ?>
     </ul>
 <?php endif; ?>
+
 
 </div>
 

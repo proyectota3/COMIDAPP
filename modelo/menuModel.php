@@ -9,22 +9,26 @@ class MenuModel
     {
         $this->db = $pdo;
     }
-
+ 
     /* ====== PARA INDEX (CLIENTE) ====== */
 
     // Menú solo activo para mostrar en indexApp
-    public function getMenuClienteByLocal($idLocal)
-    {
-        $sql = "SELECT a.Nombre, v.Precio
-                FROM vende v
-                JOIN articulos a ON v.CodigoArt = a.Codigo
-                WHERE v.IDLoc = ? 
-                  AND v.Activo = 1
-                ORDER BY a.Nombre";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$idLocal]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+ // Menú solo activo para mostrar en indexApp
+public function getMenuClienteByLocal($idLocal)
+{
+    $sql = "SELECT 
+                a.Codigo AS Codigo,   -- 👈 agregamos el código
+                a.Nombre AS Nombre,
+                v.Precio AS Precio
+            FROM vende v
+            JOIN articulos a ON v.CodigoArt = a.Codigo
+            WHERE v.IDLoc = ? 
+              AND v.Activo = 1
+            ORDER BY a.Nombre";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$idLocal]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
     /* ====== PARA ADMINISTRAR MENÚ (EMPRESA) ====== */
 

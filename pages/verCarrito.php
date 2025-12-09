@@ -32,7 +32,7 @@ if (isset($_GET['eliminar'])) {
 
 // VACIAR TODO
 if (isset($_GET['vaciar'])) {
-    $carrito = [];                 // vaciamos productos
+    $carrito = [];                      // vaciamos productos
     $_SESSION['local_carrito'] = null;  // 💡 liberamos el local del carrito
     header("Location: verCarrito.php");
     exit();
@@ -58,6 +58,21 @@ $total = 0;
         <i class="fa-solid fa-cart-shopping"></i> Mi Carrito
     </h2>
 
+    <?php
+    // Mensajes opcionales desde finalizarCompra.php
+    if (isset($_GET['error'])) {
+        if ($_GET['error'] === 'carrito_vacio') {
+            echo '<div class="alert alert-warning text-center">Tu carrito está vacío.</div>';
+        } elseif ($_GET['error'] === 'locales_distintos') {
+            echo '<div class="alert alert-danger text-center">Solo podés comprar productos de un mismo local por pedido.</div>';
+        } elseif ($_GET['error'] === 'bd') {
+            echo '<div class="alert alert-danger text-center">Ocurrió un error al procesar la compra. Intenta nuevamente.</div>';
+        } elseif ($_GET['error'] === 'sin_cliente') {
+            echo '<div class="alert alert-warning text-center">No se encontró el cliente asociado a tu usuario.</div>';
+        }
+    }
+    ?>
+
     <?php if (empty($carrito)): ?>
 
         <div class="alert alert-info text-center">
@@ -76,21 +91,41 @@ $total = 0;
             <thead class="table-danger text-center">
                 <tr>
                     <th>Producto</th>
-                    <th>Precio</th>
                     <th>Local</th>
+                    <th>Cantidad</th>
+                    <th>Precio unitario</th>
+                    <th>Subtotal</th>
                     <th>Eliminar</th>
                 </tr>
             </thead>
 
             <tbody>
                 <?php foreach ($carrito as $id => $item): ?>
-                    <?php $total += $item['precio']; ?>
+                    <?php
+                        // Nombre del producto (soporta 'producto' o 'nombre')
+                        $nombre    = $item['producto'] ?? ($item['nombre'] ?? 'Producto');
+                        // Cantidad (si no existe, asumimos 1)
+                        $cantidad  = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                        // Precio unitario
+                        $precio    = isset($item['precio']) ? (float)$item['precio'] : 0;
+                        // Subtotal
+                        $subtotal  = $precio * $cantidad;
+                        $total    += $subtotal;
+                    ?>
                     <tr class="text-center">
-                        <td><?= htmlspecialchars($item['producto']); ?></td>
-                        <td>$<?= htmlspecialchars($item['precio']); ?></td>
+                        <td><?= htmlspecialchars($nombre); ?></td>
                         <td>
-                            <?= isset($item['idLocal']) ? "Local #{$item['idLocal']}" : "-" ?>
+                            <?php 
+                                if (isset($item['idLocal'])) {
+                                    echo "Local #".htmlspecialchars($item['idLocal']);
+                                } else {
+                                    echo "-";
+                                }
+                            ?>
                         </td>
+                        <td><?= $cantidad; ?></td>
+                        <td>$<?= number_format($precio, 0, ',', '.'); ?></td>
+                        <td>$<?= number_format($subtotal, 0, ',', '.'); ?></td>
                         <td>
                             <a href="verCarrito.php?eliminar=<?= $id ?>" class="btn btn-danger btn-sm">
                                 <i class="fa-solid fa-trash"></i>
@@ -115,6 +150,7 @@ $total = 0;
                 Vaciar carrito
             </a>
 
+            <!-- El submit solo dispara finalizarCompra.php, que toma los datos desde $_SESSION['carrito'] -->
             <form action="../controlador/finalizarCompra.php" method="POST">
                 <button class="btn btn-success">
                     Finalizar compra
