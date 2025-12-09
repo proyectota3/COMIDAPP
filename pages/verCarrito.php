@@ -6,6 +6,11 @@ if (!isset($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
 
+// Aseguramos que exista la variable de local del carrito
+if (!isset($_SESSION['local_carrito'])) {
+    $_SESSION['local_carrito'] = null;
+}
+
 $carrito = &$_SESSION['carrito'];
 
 // ELIMINAR ÍTEM
@@ -15,13 +20,20 @@ if (isset($_GET['eliminar'])) {
         unset($carrito[$id]);
         $carrito = array_values($carrito); // Reindexa el array
     }
+
+    // 💡 Si después de eliminar quedó vacío, liberamos el local
+    if (empty($carrito)) {
+        $_SESSION['local_carrito'] = null;
+    }
+
     header("Location: verCarrito.php");
     exit();
 }
 
 // VACIAR TODO
 if (isset($_GET['vaciar'])) {
-    $carrito = [];
+    $carrito = [];                 // vaciamos productos
+    $_SESSION['local_carrito'] = null;  // 💡 liberamos el local del carrito
     header("Location: verCarrito.php");
     exit();
 }

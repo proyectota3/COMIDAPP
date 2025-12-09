@@ -11,6 +11,11 @@ if (!isset($_SESSION['local_carrito'])) {
     $_SESSION['local_carrito'] = null;
 }
 
+// 💡 Si el carrito está vacío, “liberamos” el local
+if (empty($_SESSION['carrito'])) {
+    $_SESSION['local_carrito'] = null;
+}
+
 // Verificar datos obligatorios
 if (
     !isset($_POST['producto']) ||
@@ -35,7 +40,6 @@ if ($_SESSION['local_carrito'] === null) {
 
 // Si el usuario intenta agregar un producto de otro local, no dejamos
 if ($_SESSION['local_carrito'] !== $idLocal) {
-    // Podés cambiar el comportamiento: mostrar mensaje, limpiar carrito, etc.
     header("Location: ../indexApp.php?error=local_distinto");
     exit();
 }
