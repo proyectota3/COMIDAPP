@@ -154,6 +154,28 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
     </div>
 </nav>
 
+<!-- 🔴 MENSAJES DE CARRITO / ERRORES / OK -->
+<?php if (isset($_GET['error']) && $_GET['error'] === 'local_distinto'): ?>
+    <div class="alert alert-warning alert-dismissible fade show text-center mb-0" role="alert">
+        No podés seleccionar menú de diferentes carritos. Terminá o vaciá el carrito actual antes de elegir otro local.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['error']) && $_GET['error'] === 'datos_faltantes'): ?>
+    <div class="alert alert-danger alert-dismissible fade show text-center mb-0" role="alert">
+        Ocurrió un error al agregar el producto. Faltan datos obligatorios.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['ok']) && $_GET['ok'] === 'agregado'): ?>
+    <div class="alert alert-success alert-dismissible fade show text-center mb-0" role="alert">
+        Producto agregado al carrito correctamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
 <main class="flex-grow-1">
     <div class="container mt-4">
         <!-- Carrusel -->
@@ -222,7 +244,7 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                                 <p><strong>Dirección:</strong> <?php echo htmlspecialchars($row['Direccion']); ?></p>
                                 <p><strong>Menú:</strong></p>
 
-                               <?php
+                            <?php
 // 👉 AHORA: menú dinámico desde la BD
 $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
 ?>
