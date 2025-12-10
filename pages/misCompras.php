@@ -2,11 +2,11 @@
 // Ejecutar el controlador
 $data = require_once "../controlador/verCompras.php";
 
-$compras = $data["compras"];
+$facturas     = $data["facturas"];
 $totalGastado = $data["totalGastado"];
 
 if (session_status() === PHP_SESSION_NONE) {
-session_start();
+    session_start();
 }
 ?>
 <!DOCTYPE html>
@@ -29,7 +29,7 @@ session_start();
         <!-- LOGO -->
         <a class="navbar-brand text-white" href="../indexApp.php">
             <i class="fa-solid fa-burger"></i> ComidAPP
-        </a>
+        </a -->
 
         <!-- BOTÓN RESPONSIVE -->
         <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse"
@@ -53,14 +53,14 @@ session_start();
                 </li>
 
                 <!-- SOLO CLIENTE -->
-                <?php if (isset($_SESSION['id']) && $_SESSION['rol'] == 3): ?>
+                <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 3): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misCompras.php">Mis compras</a>
                     </li>
                 <?php endif; ?>
 
                 <!-- SOLO EMPRESA -->
-                <?php if (isset($_SESSION['id']) && $_SESSION['rol'] == 2): ?>
+                <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 2): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misVentas.php">Mis ventas</a>
                     </li>
@@ -129,9 +129,8 @@ session_start();
         </div>
     <?php endif; ?>
 
-
     <!-- Si no hay compras -->
-    <?php if (empty($compras)): ?>
+    <?php if (empty($facturas)): ?>
 
         <div class="alert alert-info">
             Aún no tienes compras realizadas.
@@ -144,34 +143,55 @@ session_start();
             $<?php echo number_format($totalGastado, 0, ',', '.'); ?>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
-                <thead class="table-danger">
-                    <tr>
-                        <th>Fecha</th>
-                        <th>N° Factura</th>
-                        <th>Local</th>
-                        <th>Artículo</th>
-                        <th>Cantidad</th>
-                        <th>Precio unitario</th>
-                        <th>Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($compras as $c): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($c['Fecha']); ?></td>
-                            <td><?php echo htmlspecialchars($c['NumFactura']); ?></td>
-                            <td><?php echo htmlspecialchars($c['LocalNombre']); ?></td>
-                            <td><?php echo htmlspecialchars($c['ArticuloNombre']); ?></td>
-                            <td><?php echo (int)$c['Cantidad']; ?></td>
-                            <td>$<?php echo number_format($c['PrecioUnit'], 0, ',', '.'); ?></td>
-                            <td>$<?php echo number_format($c['Subtotal'], 0, ',', '.'); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+        <!-- UNA CARD POR FACTURA -->
+        <?php foreach ($facturas as $factura): ?>
+            <div class="card mb-4 shadow-sm">
+
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Factura N° <?php echo htmlspecialchars($factura['NumFactura']); ?></strong><br>
+                        <small>Fecha: <?php echo htmlspecialchars($factura['Fecha']); ?></small><br>
+                        <small>Local: <?php echo htmlspecialchars($factura['LocalNombre']); ?></small>
+                    </div>
+                    <div class="text-end">
+                        <span><strong>Total:</strong></span><br>
+                        <span class="fs-5">
+                            $<?php echo number_format($factura['totalFactura'], 0, ',', '.'); ?>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Artículo</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio unitario</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($factura['lineas'] as $linea): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($linea['ArticuloNombre']); ?></td>
+                                        <td class="text-center"><?php echo (int)$linea['Cantidad']; ?></td>
+                                        <td class="text-end">
+                                            $<?php echo number_format($linea['PrecioUnit'], 0, ',', '.'); ?>
+                                        </td>
+                                        <td class="text-end">
+                                            $<?php echo number_format($linea['Subtotal'], 0, ',', '.'); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        <?php endforeach; ?>
 
     <?php endif; ?>
 
@@ -182,6 +202,9 @@ session_start();
         <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
     </div>
 </footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

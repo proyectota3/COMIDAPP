@@ -1,3 +1,32 @@
+<?php
+// 🔹 SIEMPRE: iniciar sesión ANTES de cualquier HTML
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 🔹 Incluye las sucursales (fotoLocal debería cargarte $sucursales)
+include "./controlador/fotoLocal.php";
+
+// Seguridad: si por algún motivo fotoLocal.php no define $sucursales:
+if (!isset($sucursales) || !is_array($sucursales)) {
+    $sucursales = [];
+}
+
+// 🔹 Conexión y modelo del menú
+require_once "./modelo/connectionComidApp.php";
+require_once "./modelo/menuModel.php";
+
+$dbComidApp = new DatabaseComidApp();
+$pdo = $dbComidApp->getConnection();
+$menuModel = new MenuModel($pdo);
+
+// 🔹 Carrito siempre como array
+$carrito = (isset($_SESSION['carrito']) && is_array($_SESSION['carrito'])) 
+    ? $_SESSION['carrito'] 
+    : [];
+
+$cantidadCarrito = count($carrito);
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,42 +42,7 @@
 </head>
 <body>
 
-<?php include "./controlador/fotoLocal.php"; ?>
-
-<?php
-// 👉 NUEVO: crear PDO a partir de tu clase de conexión y cargar el modelo del menú
-require_once "./modelo/connectionComidApp.php";
-require_once "./modelo/menuModel.php";
-
-$dbComidApp = new DatabaseComidApp();
-$pdo = $dbComidApp->getConnection();
-
-$menuModel = new MenuModel($pdo);
-?>
-
-<?php
-session_start(); // Importante: al inicio del archivo donde está el nav
-?>
-
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
-// Aseguramos que la sesión esté iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
-// contador del carrito
-$cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0;
-?>
-
-<nav class="navbar navbar-expand-lg bg-danger">
+<nav class="navbar navbar-expand-lg bg-danger navbar-dark">
     <div class="container-fluid">
 
         <!-- LOGO -->
@@ -56,7 +50,7 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
             <i class="fa-solid fa-burger"></i> ComidAPP
         </a>
 
-        <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" 
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
                 data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" 
                 aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -79,7 +73,9 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                 <!-- Cliente: Mis compras (rol = 3) -->
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./pages/misCompras.php">Mis compras</a>
+                        <a class="nav-link text-white" href="./pages/misCompras.php">
+                            <i class="fa-solid fa-bag-shopping me-1"></i> Mis compras
+                        </a>
                     </li>
                 <?php endif; ?>
 
@@ -90,7 +86,9 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./pages/misVentas.php">Mis ventas</a>
+                        <a class="nav-link text-white" href="./pages/misVentas.php">
+                            <i class="fa-solid fa-chart-line me-1"></i> Mis ventas
+                        </a>
                     </li>
                 <?php endif; ?>
 
@@ -106,35 +104,139 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
             <!-- ZONA DERECHA -->
             <ul class="navbar-nav d-flex align-items-center ms-3">
 
-                <!-- Carrito (solo clientes) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
-                    <li class="nav-item me-3">
-                        <a class="nav-link position-relative text-white" href="./pages/verCarrito.php">
-                            <i class="fa-solid fa-cart-shopping fa-lg"></i>
+<!-- 🔽 CARRITO TIPO VENTANA (solo clientes) -->
+<?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
 
-                            <?php if ($cantidadCarrito > 0): ?>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
-                                    <?php echo $cantidadCarrito; ?>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
-                <?php endif; ?>
+    <?php
+    // Aseguramos variable $carrito para evitar avisos
+    $carrito = $_SESSION['carrito'] ?? [];
+    ?>
 
-                <!-- Usuario logueado -->
+    <li class="nav-item dropdown me-3">
+        <a class="nav-link position-relative text-white dropdown-toggle" href="#"
+           id="carritoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-solid fa-cart-shopping fa-lg"></i>
+
+            <?php if ($cantidadCarrito > 0): ?>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                    <?php echo $cantidadCarrito; ?>
+                </span>
+            <?php endif; ?>
+        </a>
+
+        <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
+        <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
+             aria-labelledby="carritoDropdown"
+             style="
+                width: 420px;
+                height: auto;
+                max-height: none;
+                overflow: visible;
+                border-radius: 16px;
+             ">
+
+            <h5 class="mb-3 text-center">
+                <i class="fa-solid fa-cart-shopping"></i> Mi carrito
+            </h5>
+
+            <?php if (empty($carrito)): ?>
+                <p class="text-center text-muted mb-0">El carrito está vacío.</p>
+            <?php else: ?>
+
+                <!-- LISTA DE PRODUCTOS -->
+                <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
+                    <?php foreach ($carrito as $idx => $item): 
+                        // 👉 Ahora usamos 'nombre' (como lo guardamos en agregarCarrito.php)
+                        $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
+                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
+                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                    ?>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><?php echo $nombre; ?></strong><br>
+                                <small>
+                                    $<?php echo $precio; ?> x <?php echo $cantidad; ?>
+                                </small>
+                            </div>
+
+                            <!-- ELIMINAR ITEM (lleva al verCarrito para procesar ?eliminar=) -->
+                            <a href="./pages/verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <!-- BOTONES -->
+                <div class="d-grid gap-2">
+                    <!-- Ver carrito completo -->
+                    <a href="./pages/verCarrito.php" class="btn btn-primary">
+                        Ver carrito
+                    </a>
+
+                    <!-- Confirmar compra -->
+                    <form action="./controlador/finalizarCompra.php" method="POST" class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            Confirmar compra
+                        </button>
+                    </form>
+
+                    <!-- Vaciar carrito (usa ?vaciar=1 que ya manejás en verCarrito.php) -->
+                    <a href="./pages/verCarrito.php?vaciar=1" class="btn btn-outline-danger">
+                        Vaciar carrito
+                    </a>
+                </div>
+
+            <?php endif; ?>
+        </div>
+    </li>
+<?php endif; ?>
+
+
+                <!-- 🔽 DROPDOWN USUARIO -->
                 <?php if (isset($_SESSION['id'])): ?>
 
-                    <li class="nav-item me-3">
-                        <a class="nav-link text-white d-flex align-items-center" href="./pages/perfil.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#"
+                        id="usuarioDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fa-solid fa-user fa-lg me-1"></i>
-                            <span><?php echo htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['user']); ?></span>
+                            <span>
+                                <?php echo htmlspecialchars($_SESSION['nombre'] ?? ($_SESSION['user'] ?? 'Mi cuenta')); ?>
+                            </span>
                         </a>
-                    </li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="usuarioDropdown">
+                            <!-- Perfil -->
+                            <li>
+                                <a class="dropdown-item" href="./pages/perfil.php">
+                                    <i class="fa-solid fa-id-card me-2"></i> Perfil
+                                </a>
+                            </li>
 
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light" href="./logout.php">
-                            Cerrar sesión
-                        </a>
+                            <!-- Mis compras solo para cliente -->
+                            <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                                <li>
+                                    <a class="dropdown-item" href="./pages/misCompras.php">
+                                        <i class="fa-solid fa-bag-shopping me-2"></i> Mis compras
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+
+                            <!-- Info usuario -->
+                            <li>
+                                <a class="dropdown-item" href="./pages/infoUsuario.php">
+                                    <i class="fa-solid fa-circle-info me-2"></i> Información
+                                </a>
+                            </li>
+
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Cerrar sesión -->
+                            <li>
+                                <a class="dropdown-item text-danger" href="./logout.php">
+                                    <i class="fa-solid fa-right-from-bracket me-2"></i> Cerrar sesión
+                                </a>
+                            </li>
+                        </ul>
                     </li>
 
                 <?php else: ?>
@@ -245,48 +347,48 @@ $cantidadCarrito = isset($_SESSION['carrito']) ? count($_SESSION['carrito']) : 0
                                 <p><strong>Menú:</strong></p>
 
                             <?php
-// 👉 AHORA: menú dinámico desde la BD
-$menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
-?>
+                            // 👉 AHORA: menú dinámico desde la BD
+                            $menuLocal = $menuModel->getMenuClienteByLocal($row['ID']);
+                            ?>
 
-<?php if (empty($menuLocal)): ?>
-    <p>Este local aún no tiene productos cargados.</p>
-<?php else: ?>
-    <ul class="list-group">
-        <?php foreach ($menuLocal as $prod): ?>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                    <?php echo htmlspecialchars($prod['Nombre']); ?> - 
-                    $<?php echo htmlspecialchars($prod['Precio']); ?>
-                </span>
+                            <?php if (empty($menuLocal)): ?>
+                                <p>Este local aún no tiene productos cargados.</p>
+                            <?php else: ?>
+                                <ul class="list-group">
+                                    <?php foreach ($menuLocal as $prod): ?>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <?php echo htmlspecialchars($prod['Nombre']); ?> - 
+                                                $<?php echo htmlspecialchars($prod['Precio']); ?>
+                                            </span>
 
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
-                    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-                        <!-- Nombre del producto -->
-                        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
+                                            <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                                                <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+                                                    <!-- Nombre del producto -->
+                                                    <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
 
-                        <!-- Precio unitario -->
-                        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
+                                                    <!-- Precio unitario -->
+                                                    <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
 
-                        <!-- ID DEL LOCAL (VIENE DE $row['ID']) -->
-                        <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
+                                                    <!-- ID DEL LOCAL (VIENE DE $row['ID']) -->
+                                                    <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
 
-                        <!-- 🔴 CÓDIGO DEL ARTÍCULO (OBLIGATORIO PARA COMPRA/VENDE) -->
-                        <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
+                                                    <!-- 🔴 CÓDIGO DEL ARTÍCULO (OBLIGATORIO PARA COMPRA/VENDE) -->
+                                                    <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
 
-                        <!-- Cantidad (por ahora siempre 1) -->
-                        <input type="hidden" name="cantidad" value="1">
+                                                    <!-- Cantidad (por ahora siempre 1) -->
+                                                    <input type="hidden" name="cantidad" value="1">
 
-                        <button class="btn btn-sm btn-primary">Agregar</button>
-                    </form>
-                <?php endif; ?>
-            </li>
-        <?php endforeach; ?>
-    </ul>
-<?php endif; ?>
+                                                    <button class="btn btn-sm btn-primary">Agregar</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
 
 
-</div>
+                            </div>
 
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

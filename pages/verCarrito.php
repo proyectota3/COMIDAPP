@@ -1,44 +1,44 @@
 <?php
 session_start();
 
-// Crear carrito si no existe
+// 1) Asegurar que exista el carrito en la sesión
 if (!isset($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
-
-// Aseguramos que exista la variable de local del carrito
-if (!isset($_SESSION['local_carrito'])) {
-    $_SESSION['local_carrito'] = null;
-}
-
 $carrito = &$_SESSION['carrito'];
 
-// ELIMINAR ÍTEM
+// 2) ELIMINAR ÍTEM (por índice)
 if (isset($_GET['eliminar'])) {
-    $id = intval($_GET['eliminar']);
+    $id = (int) $_GET['eliminar'];
     if (isset($carrito[$id])) {
         unset($carrito[$id]);
-        $carrito = array_values($carrito); // Reindexa el array
+        // Reindexar para que los índices queden prolijos
+        $carrito = array_values($carrito);
     }
-
-    // 💡 Si después de eliminar quedó vacío, liberamos el local
-    if (empty($carrito)) {
-        $_SESSION['local_carrito'] = null;
-    }
-
     header("Location: verCarrito.php");
     exit();
 }
 
-// VACIAR TODO
+// 3) VACIAR TODO EL CARRITO
 if (isset($_GET['vaciar'])) {
-    $carrito = [];                      // vaciamos productos
-    $_SESSION['local_carrito'] = null;  // 💡 liberamos el local del carrito
+    $carrito = [];
     header("Location: verCarrito.php");
     exit();
 }
 
+// 4) Calcular totales
 $total = 0;
+$cantidadTotal = 0;
+
+foreach ($carrito as $item) {
+    $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
+    $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+    if ($cantidad < 1) $cantidad = 1;
+
+    $subtotal = $precio * $cantidad;
+    $total   += $subtotal;
+    $cantidadTotal += $cantidad;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -46,121 +46,212 @@ $total = 0;
     <meta charset="UTF-8">
     <title>Mi Carrito | ComidAPP</title>
 
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tu CSS -->
+    <link rel="stylesheet" href="../styles.css">
 </head>
+<body>
 
-<body class="bg-light">
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg bg-danger">
+    <div class="container-fluid">
 
-<div class="container mt-4">
+        <!-- LOGO -->
+        <a class="navbar-brand text-white" href="../indexApp.php">
+            <i class="fa-solid fa-burger"></i> ComidAPP
+        </a>
 
-    <h2 class="mb-4 text-center">
-        <i class="fa-solid fa-cart-shopping"></i> Mi Carrito
-    </h2>
+        <!-- BOTÓN RESPONSIVE -->
+        <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <?php
-    // Mensajes opcionales desde finalizarCompra.php
-    if (isset($_GET['error'])) {
-        if ($_GET['error'] === 'carrito_vacio') {
-            echo '<div class="alert alert-warning text-center">Tu carrito está vacío.</div>';
-        } elseif ($_GET['error'] === 'locales_distintos') {
-            echo '<div class="alert alert-danger text-center">Solo podés comprar productos de un mismo local por pedido.</div>';
-        } elseif ($_GET['error'] === 'bd') {
-            echo '<div class="alert alert-danger text-center">Ocurrió un error al procesar la compra. Intenta nuevamente.</div>';
-        } elseif ($_GET['error'] === 'sin_cliente') {
-            echo '<div class="alert alert-warning text-center">No se encontró el cliente asociado a tu usuario.</div>';
-        }
-    }
-    ?>
+        <!-- CONTENIDO DEL NAV -->
+        <div class="collapse navbar-collapse" id="navbarContent">
+
+            <!-- MENÚ IZQUIERDO -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./contacto.php">Contacto</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./descargar.php">Descargar</a>
+                </li>
+
+                <!-- SOLO CLIENTE -->
+                <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 3): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misCompras.php">Mis compras</a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- SOLO EMPRESA -->
+                <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 2): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misVentas.php">Mis ventas</a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+
+            <!-- BUSCADOR CENTRAL (opcional) -->
+            <form class="d-flex mx-auto position-relative" style="width: 35%;" role="search">
+                <input class="form-control" id="buscar" type="search" placeholder="Buscar sucursal">
+                <ul id="resultados" class="list-group position-absolute mt-2"
+                    style="z-index: 1000; width: 100%;"></ul>
+            </form>
+
+            <!-- MENÚ DERECHA -->
+            <ul class="navbar-nav d-flex align-items-center ms-3">
+
+                <?php if (isset($_SESSION['id'])): ?>
+                    <!-- PERFIL -->
+                    <li class="nav-item me-3">
+                        <a class="nav-link text-white d-flex align-items-center" href="./perfil.php">
+                            <i class="fa-solid fa-user fa-lg me-2"></i>
+                            <span><?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['user']); ?></span>
+                        </a>
+                    </li>
+
+                    <!-- CERRAR SESIÓN -->
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="../logout.php">
+                            Cerrar sesión
+                        </a>
+                    </li>
+                <?php else: ?>
+                    <!-- INICIAR SESIÓN -->
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="../loginApp.php">
+                            Iniciar sesión
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<header class="bg-light py-4">
+    <div class="container">
+        <h1 class="h3 mb-0">
+            <i class="fa-solid fa-cart-shopping"></i> Mi carrito
+        </h1>
+    </div>
+</header>
+
+<main class="container my-4">
+
+    <!-- Mensajes de error (locales distintos, carrito vacío, etc.) -->
+    <?php if (isset($_GET['error']) && $_GET['error'] == 'locales_distintos'): ?>
+        <div class="alert alert-warning">
+            No podés mezclar productos de distintos locales en una misma compra.
+        </div>
+    <?php elseif (isset($_GET['error']) && $_GET['error'] == 'carrito_vacio'): ?>
+        <div class="alert alert-info">
+            Tu carrito está vacío.
+        </div>
+    <?php endif; ?>
 
     <?php if (empty($carrito)): ?>
 
-        <div class="alert alert-info text-center">
-            Tu carrito está vacío.
-        </div>
-
-        <div class="text-center">
-            <a href="../indexApp.php" class="btn btn-primary">
-                Volver a comprar
-            </a>
+        <div class="alert alert-info">
+            Tu carrito está vacío. <a href="../indexApp.php" class="alert-link">Seguir comprando</a>
         </div>
 
     <?php else: ?>
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-danger text-center">
-                <tr>
-                    <th>Producto</th>
-                    <th>Local</th>
-                    <th>Cantidad</th>
-                    <th>Precio unitario</th>
-                    <th>Subtotal</th>
-                    <th>Eliminar</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <?php foreach ($carrito as $id => $item): ?>
-                    <?php
-                        // Nombre del producto (soporta 'producto' o 'nombre')
-                        $nombre    = $item['producto'] ?? ($item['nombre'] ?? 'Producto');
-                        // Cantidad (si no existe, asumimos 1)
-                        $cantidad  = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
-                        // Precio unitario
-                        $precio    = isset($item['precio']) ? (float)$item['precio'] : 0;
-                        // Subtotal
-                        $subtotal  = $precio * $cantidad;
-                        $total    += $subtotal;
-                    ?>
-                    <tr class="text-center">
-                        <td><?= htmlspecialchars($nombre); ?></td>
-                        <td>
-                            <?php 
-                                if (isset($item['idLocal'])) {
-                                    echo "Local #".htmlspecialchars($item['idLocal']);
-                                } else {
-                                    echo "-";
-                                }
-                            ?>
-                        </td>
-                        <td><?= $cantidad; ?></td>
-                        <td>$<?= number_format($precio, 0, ',', '.'); ?></td>
-                        <td>$<?= number_format($subtotal, 0, ',', '.'); ?></td>
-                        <td>
-                            <a href="verCarrito.php?eliminar=<?= $id ?>" class="btn btn-danger btn-sm">
-                                <i class="fa-solid fa-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <div class="text-end">
-            <h4>Total: <strong>$<?= number_format($total, 0, ',', '.') ?></strong></h4>
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Ítems en el carrito:</strong> <?php echo $cantidadTotal; ?>
+            </div>
+            <div>
+                <strong>Total:</strong>
+                $<?php echo number_format($total, 0, ',', '.'); ?>
+            </div>
         </div>
 
-        <div class="d-flex justify-content-between mt-4">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead class="table-danger">
+                    <tr>
+                        <th>#</th>
+                        <th>Artículo</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">Precio unitario</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($carrito as $idx => $item): 
+                        $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
+                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
+                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                        if ($cantidad < 1) $cantidad = 1;
+                        $subtotal = $precio * $cantidad;
+                    ?>
+                        <tr>
+                            <td><?php echo $idx + 1; ?></td>
+                            <td><?php echo $nombre; ?></td>
+                            <td class="text-center"><?php echo $cantidad; ?></td>
+                            <td class="text-end">
+                                $<?php echo number_format($precio, 0, ',', '.'); ?>
+                            </td>
+                            <td class="text-end">
+                                $<?php echo number_format($subtotal, 0, ',', '.'); ?>
+                            </td>
+                            <td class="text-center">
+                                <a href="verCarrito.php?eliminar=<?php echo $idx; ?>"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i> Quitar
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
 
-            <a href="../indexApp.php" class="btn btn-secondary">
-                Seguir comprando
-            </a>
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                <a href="../indexApp.php" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Seguir comprando
+                </a>
+            </div>
 
-            <a href="verCarrito.php?vaciar=1" class="btn btn-warning">
-                Vaciar carrito
-            </a>
+            <div class="d-flex gap-2">
+                <a href="verCarrito.php?vaciar=1" class="btn btn-outline-danger">
+                    <i class="fa-solid fa-trash-can"></i> Vaciar carrito
+                </a>
 
-            <!-- El submit solo dispara finalizarCompra.php, que toma los datos desde $_SESSION['carrito'] -->
-            <form action="../controlador/finalizarCompra.php" method="POST">
-                <button class="btn btn-success">
-                    Finalizar compra
-                </button>
-            </form>
+                <form action="../controlador/finalizarCompra.php" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-check"></i> Confirmar compra
+                    </button>
+                </form>
+            </div>
         </div>
 
     <?php endif; ?>
 
-</div>
+</main>
+
+<footer class="footer bg-danger text-center text-white py-3 mt-4">
+    <div class="container">
+        <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
