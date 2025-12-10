@@ -23,7 +23,7 @@ public function getMenuClienteByLocal($idLocal)
             FROM vende v
             JOIN articulos a ON v.CodigoArt = a.Codigo
             WHERE v.IDLoc = ? 
-              AND v.Activo = 1
+            AND v.Activo = 1
             ORDER BY a.Nombre";
     $stmt = $this->db->prepare($sql);
     $stmt->execute([$idLocal]);
