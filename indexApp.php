@@ -114,7 +114,7 @@ $cantidadCarrito = count($carrito);
 
     <li class="nav-item dropdown me-3">
         <a class="nav-link position-relative text-white dropdown-toggle" href="#"
-           id="carritoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        id="carritoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="fa-solid fa-cart-shopping fa-lg"></i>
 
             <?php if ($cantidadCarrito > 0): ?>
@@ -126,14 +126,14 @@ $cantidadCarrito = count($carrito);
 
         <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
         <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
-             aria-labelledby="carritoDropdown"
-             style="
+            aria-labelledby="carritoDropdown"
+            style="
                 width: 420px;
                 height: auto;
                 max-height: none;
                 overflow: visible;
                 border-radius: 16px;
-             ">
+            ">
 
             <h5 class="mb-3 text-center">
                 <i class="fa-solid fa-cart-shopping"></i> Mi carrito
@@ -280,43 +280,86 @@ $cantidadCarrito = count($carrito);
 
 <main class="flex-grow-1">
     <div class="container mt-4">
-        <!-- Carrusel -->
-        <div id="foodCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-indicators">
-                <?php
-                $index = 0;
-                foreach ($sucursales as $row) {
-                    echo '<button type="button" data-bs-target="#foodCarousel" data-bs-slide-to="' . $index . '"' . ($index === 0 ? ' class="active"' : '') . ' aria-label="Slide ' . ($index + 1) . '"></button>';
-                    $index++;
-                }
-                ?>
-            </div>
-            <div class="carousel-inner">
-                <?php
-                $index = 0;
-                foreach ($sucursales as $row) {
-                    ?>
-                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                        <img src="<?php echo htmlspecialchars($row['Foto']); ?>" class="d-block w-100" alt="Foto del carrito">
-                        <div class="carousel-caption d-block">
-                            <p class="store-name fw-bold text-dark"><?php echo htmlspecialchars($row['Nombre']); ?></p>
-                            <p class="store-address text-dark"><?php echo htmlspecialchars($row['Direccion']); ?></p>
-                        </div>
-                    </div>
-                    <?php
-                    $index++;
-                }
-                ?>
-            </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#foodCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Anterior</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#foodCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Siguiente</span>
-            </button>
+    <!-- Carrusel (solo marketing) -->
+<div id="foodCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+
+<!-- Indicadores -->
+<div class="carousel-indicators">
+    <button type="button" data-bs-target="#foodCarousel" data-bs-slide-to="0"
+            class="active" aria-current="true" aria-label="Promo 1"></button>
+    <button type="button" data-bs-target="#foodCarousel" data-bs-slide-to="1"
+            aria-label="Promo 2"></button>
+    <button type="button" data-bs-target="#foodCarousel" data-bs-slide-to="2"
+            aria-label="Promo 3"></button>
+</div>
+
+<div class="carousel-inner">
+
+    <!-- Banner 1: Descuento por acumulado -->
+    <div class="carousel-item active">
+    <div class="d-flex align-items-center justify-content-center text-center"
+        style="height:360px; background:linear-gradient(135deg,#dc3545,#ff6b6b); color:white;">
+        <div class="px-3">
+        <h2 class="fw-bold mb-2">🎉 ¡Recompensa ComidAPP!</h2>
+        <p class="fs-4 mb-3">
+            Si alcanzás <strong>$5000</strong> en compras totales<br>
+            tenés <strong>25% OFF</strong> en tu próximo pedido 🍔
+        </p>
+        <span class="badge bg-light text-danger fs-6 px-3 py-2">
+            Promo por cliente
+        </span>
         </div>
+    </div>
+    </div>
+
+    <!-- Banner 2: Delivery rápido -->
+    <div class="carousel-item">
+    <div class="d-flex align-items-center justify-content-center text-center"
+style="height:360px; background:linear-gradient(135deg,#198754,#20c997); color:white;">
+        <div class="px-3">
+        <h2 class="fw-bold mb-2">⚡ Delivery rápido</h2>
+        <p class="fs-4 mb-3">
+            Pedí en tu local favorito y recibí tu pedido<br>
+            <strong>más rápido</strong> y sin complicarte 🛵
+        </p>
+        <span class="badge bg-light text-success fs-6 px-3 py-2">
+            Fácil • Rápido • Seguro
+        </span>
+        </div>
+    </div>
+    </div>
+
+    <!-- Banner 3: Variedad / promos -->
+    <div class="carousel-item">
+    <div class="d-flex align-items-center justify-content-center text-center"
+        style="height:360px; background:linear-gradient(135deg,#0d6efd,#6f42c1); color:white;">
+        <div class="px-3">
+        <h2 class="fw-bold mb-2">🍟 Más locales, más variedad</h2>
+        <p class="fs-4 mb-3">
+            Explorá menús, guardá tus favoritos<br>
+            y encontrá <strong>promos todos los días</strong> 🔥
+        </p>
+        <span class="badge bg-light text-primary fs-6 px-3 py-2">
+            Descubrí • Elegí • Comprá
+        </span>
+        </div>
+    </div>
+    </div>
+
+</div>
+
+<!-- Controles -->
+<button class="carousel-control-prev" type="button" data-bs-target="#foodCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Anterior</span>
+</button>
+<button class="carousel-control-next" type="button" data-bs-target="#foodCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Siguiente</span>
+</button>
+
+</div>
+
 
         <!-- Lista de sucursales con modales -->
         <div class="store-list mt-4">
