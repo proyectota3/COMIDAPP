@@ -108,7 +108,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
     
     <header class="bg-light py-5">
-       
+    
     </header>
 
     <main class="container my-5 flex-grow-1">

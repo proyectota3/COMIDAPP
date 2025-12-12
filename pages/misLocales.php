@@ -131,7 +131,7 @@ $cantidadCarrito = $data["cantidadCarrito"];
 
                         <?php if (!empty($loc['Foto'])): ?>
                             <img src="<?php echo htmlspecialchars($loc['Foto']); ?>" 
-                                 class="card-img-top" alt="Foto del local">
+                                class="card-img-top" alt="Foto del local">
                         <?php endif; ?>
 
                         <div class="card-body">
@@ -140,7 +140,7 @@ $cantidadCarrito = $data["cantidadCarrito"];
                             <p><strong>Delivery: </strong><?php echo $loc['Delivery'] ? 'Sí' : 'No'; ?></p>
 
                             <a href="./administrarLocal.php?id=<?php echo $loc['ID']; ?>" 
-                               class="btn btn-primary">Administrar menú</a>
+                            class="btn btn-primary">Administrar menú</a>
                         </div>
 
                     </div>
