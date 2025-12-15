@@ -31,8 +31,8 @@ $sql = "
         ON c.CodigoArt = a.Codigo
     JOIN vende v
         ON c.IDLoc = v.IDLoc
-       AND c.CodigoArt = v.CodigoArt
-       AND c.FechaIniPrecio = v.FechaIniPrecio
+    AND c.CodigoArt = v.CodigoArt
+    AND c.FechaIniPrecio = v.FechaIniPrecio
     WHERE c.IDCli = :idCli
     ORDER BY c.Fecha DESC, c.NumFactura DESC
 ";
