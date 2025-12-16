@@ -120,18 +120,18 @@ $cantidadCarrito = $data["cantidadCarrito"];
                         <td><?php echo htmlspecialchars($linea['Nombre']); ?></td>
                         <td>
                             <input type="text"
-                                   name="linea[<?php echo $linea['ID']; ?>][precio]"
-                                   value="<?php echo htmlspecialchars($linea['Precio']); ?>"
-                                   class="form-control">
+                                name="linea[<?php echo $linea['ID']; ?>][precio]"
+                                value="<?php echo htmlspecialchars($linea['Precio']); ?>"
+                                class="form-control">
                         </td>
                         <td class="text-center">
                             <input type="checkbox"
-                                   name="linea[<?php echo $linea['ID']; ?>][activo]"
-                                   <?php echo $linea['Activo'] ? 'checked' : ''; ?>>
+                                name="linea[<?php echo $linea['ID']; ?>][activo]"
+                                <?php echo $linea['Activo'] ? 'checked' : ''; ?>>
                         </td>
                         <td class="text-center">
                             <input type="checkbox"
-                                   name="linea[<?php echo $linea['ID']; ?>][eliminar]">
+                                name="linea[<?php echo $linea['ID']; ?>][eliminar]">
                         </td>
                     </tr>
                 <?php endforeach; ?>
