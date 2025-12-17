@@ -1,128 +1,336 @@
 <?php
-/**
- * controlador/verCompras.php
- * ---------------------------------------------------------
- * CONTROLADOR (solo lectura) para el historial de compras del CLIENTE (rol 3)
- *
- * Devuelve:
- * - facturas: array agrupado por NumFactura (cada factura contiene líneas)
- * - totalGastado: suma total de todos los subtotales
- *
- * IMPORTANTE:
- * - La tabla compra tiene UNA FILA por artículo.
- * - Para mostrar estado por factura:
- *      MIN(Valida) = 0 => hay al menos un item pendiente => factura PENDIENTE
- *      MIN(Valida) = 1 => todos entregados => factura ENTREGADA
- */
-
-session_start();
-
-// 1) Verificar que esté logueado y sea cliente
-if (!isset($_SESSION['id']) || !isset($_SESSION['rol']) || (int)$_SESSION['rol'] !== 3) {
-    header("Location: ../loginApp.php");
-    exit();
+// ✅ SIEMPRE iniciar sesión antes de usar $_SESSION o llamar controladores
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$idCliente = (int)$_SESSION['id'];
+// Ejecutar el controlador
+$data = require_once "../controlador/verCompras.php";
 
-// 2) Conexión BD
-require_once __DIR__ . "/../modelo/connectionComidApp.php";
-$db = new DatabaseComidApp();
-$conexion = $db->getConnection();
+$facturas     = $data["facturas"] ?? [];
+$totalGastado = $data["totalGastado"] ?? 0;
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMIDAPP - Mis compras</title>
 
-/**
- * 3) Consultar historial
- * - Traemos líneas de compra + precio unitario desde VENDE
- * - Traemos también Valida por línea
- *
- * OJO: la relación con VENDE incluye FechaIniPrecio (para agarrar el precio de ese momento)
- */
-$sql = "
-    SELECT 
-        c.NumFactura,
-        c.Fecha,
-        c.Cantidad,
-        c.Valida,                 -- ✅ Estado por línea (0 pendiente / 1 entregado)
-        c.FormaPago,
-        c.Delivery,
-        c.DireccionEntrega,
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="../styles.css" rel="stylesheet">
+</head>
 
-        l.Nombre AS LocalNombre,
-        a.Nombre AS ArticuloNombre,
-        v.Precio AS PrecioUnit,
-        (v.Precio * c.Cantidad) AS Subtotal
-    FROM compra c
-    JOIN local l 
-        ON c.IDLoc = l.ID
-    JOIN articulos a
-        ON c.CodigoArt = a.Codigo
-    JOIN vende v
-        ON c.IDLoc = v.IDLoc
-        AND c.CodigoArt = v.CodigoArt
-        AND c.FechaIniPrecio = v.FechaIniPrecio
-    WHERE c.IDCli = :idCli
-    ORDER BY c.Fecha DESC, c.NumFactura DESC
-";
+<body>
 
-$stmt = $conexion->prepare($sql);
-$stmt->execute([':idCli' => $idCliente]);
-$lineas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+<nav class="navbar navbar-expand-lg bg-danger navbar-dark">
+    <div class="container-fluid">
 
-// 4) Agrupar líneas por NumFactura (una factura = varios artículos)
-$facturas = [];
-$totalGastado = 0;
+        <!-- LOGO -->
+        <a class="navbar-brand text-white" href="../indexApp.php">
+            <i class="fa-solid fa-burger"></i> ComidAPP
+        </a>
 
-foreach ($lineas as $c) {
-    $nf = (int)$c['NumFactura'];
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    // Si es la primera vez que vemos esta factura, la creamos
-    if (!isset($facturas[$nf])) {
-        $facturas[$nf] = [
-            'NumFactura'       => $nf,
-            'Fecha'            => $c['Fecha'],
-            'LocalNombre'      => $c['LocalNombre'],
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
 
-            // ✅ Checkout info (si existe)
-            'FormaPago'        => $c['FormaPago'] ?? null,
-            'Delivery'         => isset($c['Delivery']) ? (int)$c['Delivery'] : null,
-            'DireccionEntrega' => $c['DireccionEntrega'] ?? null,
+            <!-- MENÚ IZQUIERDO -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-            // ✅ Estado de la factura:
-            // arrancamos con el estado de la primera línea y luego lo vamos “bajando” si aparece un 0
-            'Valida'           => (int)($c['Valida'] ?? 0),
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./contacto.php">Contacto</a>
+                </li>
 
-            // Totales y líneas
-            'totalFactura'     => 0,
-            'lineas'           => [],
-        ];
-    } else {
-        /**
-         * ✅ Si una factura tiene varias líneas:
-         * - Si alguna línea está en 0 => factura debe quedar 0 (Pendiente)
-         * - Si todas son 1 => queda 1 (Entregado)
-         *
-         * Esto lo logramos así: si aparece una línea Valida=0, forzamos la factura a 0.
-         */
-        if ((int)($c['Valida'] ?? 0) === 0) {
-            $facturas[$nf]['Valida'] = 0;
-        }
-    }
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="./descargar.php">Descargar</a>
+                </li>
 
-    // Guardamos cada línea
-    $facturas[$nf]['lineas'][] = [
-        'ArticuloNombre' => $c['ArticuloNombre'],
-        'Cantidad'       => (int)$c['Cantidad'],
-        'PrecioUnit'     => (float)$c['PrecioUnit'],
-        'Subtotal'       => (float)$c['Subtotal'],
-    ];
+                <!-- Cliente -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misCompras.php">
+                            <i class="fa-solid fa-bag-shopping me-1"></i> Mis compras
+                        </a>
+                    </li>
+                <?php endif; ?>
 
-    // Sumatorias
-    $facturas[$nf]['totalFactura'] += (float)$c['Subtotal'];
-    $totalGastado += (float)$c['Subtotal'];
-}
+                <!-- Empresa -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misLocales.php">Mis locales</a>
+                    </li>
 
-// 5) Retornar datos a la vista
-return [
-    "facturas"      => $facturas,
-    "totalGastado"  => $totalGastado
-];
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="./misVentas.php">
+                            <i class="fa-solid fa-chart-line me-1"></i> Mis ventas
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+            </ul>
+
+            <!-- BUSCADOR CENTRADO -->
+            <form class="d-flex mx-auto position-relative" style="width: 35%;" role="search">
+                <input class="form-control" id="buscar" type="search" placeholder="Buscar sucursal" aria-label="Search">
+                <ul id="resultados" class="list-group position-absolute mt-2"
+                    style="z-index: 1000; width: 100%;"></ul>
+            </form>
+
+            <!-- ZONA DERECHA -->
+            <ul class="navbar-nav d-flex align-items-center ms-3">
+
+                <!-- 🛒 CARRITO (solo clientes) -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+
+                    <?php
+                    $carrito = $_SESSION['carrito'] ?? [];
+                    $cantidadCarrito = array_sum(array_map(fn($i) => (int)($i['cantidad'] ?? 1), $carrito));
+                    ?>
+
+                    <li class="nav-item dropdown me-3">
+                        <a class="nav-link position-relative text-white dropdown-toggle" href="#"
+                           id="carritoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-cart-shopping fa-lg"></i>
+
+                            <?php if ($cantidadCarrito > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                                    <?php echo $cantidadCarrito; ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
+                             aria-labelledby="carritoDropdown"
+                             style="width: 420px; border-radius: 16px;">
+
+                            <h5 class="mb-3 text-center">
+                                <i class="fa-solid fa-cart-shopping"></i> Mi carrito
+                            </h5>
+
+                            <?php if (empty($carrito)): ?>
+                                <p class="text-center text-muted mb-0">El carrito está vacío.</p>
+                            <?php else: ?>
+
+                                <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
+                                    <?php foreach ($carrito as $idx => $item):
+                                        $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
+                                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
+                                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                                    ?>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><?php echo $nombre; ?></strong><br>
+                                                <small>$<?php echo $precio; ?> x <?php echo $cantidad; ?></small>
+                                            </div>
+
+                                            <a href="./verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+
+                                <div class="d-grid gap-2">
+                                    <a href="./verCarrito.php" class="btn btn-primary">Ver carrito</a>
+
+                                    <!-- ✅ AHORA VA A CHECKOUT (no a finalizarCompra directo) -->
+                                    <a href="./checkout.php" class="btn btn-success">Ir a checkout</a>
+
+                                    <a href="./verCarrito.php?vaciar=1" class="btn btn-outline-danger">Vaciar carrito</a>
+                                </div>
+
+                            <?php endif; ?>
+                        </div>
+                    </li>
+
+                <?php endif; ?>
+
+                <!-- 👤 USUARIO -->
+                <?php if (isset($_SESSION['id'])): ?>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#"
+                           id="usuarioDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-user fa-lg me-1"></i>
+                            <span><?php echo htmlspecialchars($_SESSION['nombre'] ?? ($_SESSION['user'] ?? 'Mi cuenta')); ?></span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="usuarioDropdown">
+                            <li>
+                                <a class="dropdown-item" href="./perfil.php">
+                                    <i class="fa-solid fa-id-card me-2"></i> Perfil
+                                </a>
+                            </li>
+
+                            <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                                <li>
+                                    <a class="dropdown-item" href="./misCompras.php">
+                                        <i class="fa-solid fa-bag-shopping me-2"></i> Mis compras
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+
+                            <li>
+                                <a class="dropdown-item" href="./infoUsuario.php">
+                                    <i class="fa-solid fa-circle-info me-2"></i> Información
+                                </a>
+                            </li>
+
+                            <li><hr class="dropdown-divider"></li>
+
+                            <li>
+                                <a class="dropdown-item text-danger" href="../logout.php">
+                                    <i class="fa-solid fa-right-from-bracket me-2"></i> Cerrar sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                <?php else: ?>
+
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light" href="../loginApp.php">Iniciar sesión</a>
+                    </li>
+
+                <?php endif; ?>
+
+            </ul>
+
+        </div>
+    </div>
+</nav>
+
+<header class="bg-light py-4">
+    <div class="container">
+        <h1 class="h3 mb-0">
+            <i class="fa-solid fa-receipt"></i> Mis compras
+        </h1>
+    </div>
+</header>
+
+<main class="container my-4">
+
+    <?php if (isset($_GET['ok']) && $_GET['ok'] == 1): ?>
+        <div class="alert alert-success">
+            ¡Tu compra se registró correctamente!
+        </div>
+    <?php endif; ?>
+
+    <?php if (empty($facturas)): ?>
+
+        <div class="alert alert-info">
+            Aún no tienes compras realizadas.
+        </div>
+
+    <?php else: ?>
+
+        <div class="mb-3 text-end">
+            <strong>Total gastado:</strong>
+            $<?php echo number_format($totalGastado, 0, ',', '.'); ?>
+        </div>
+
+        <?php foreach ($facturas as $factura): ?>
+            <div class="card mb-4 shadow-sm">
+
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Factura N° <?php echo htmlspecialchars($factura['NumFactura']); ?></strong>
+
+                        <!-- ✅ ESTADO -->
+                        <?php
+                        $estado = (int)($factura['Valida'] ?? 0);
+                        if ($estado === 1) {
+                            echo '<span class="badge bg-success ms-2">Entregado</span>';
+                        } else {
+                            echo '<span class="badge bg-warning text-dark ms-2">Pendiente</span>';
+                        }
+                        ?>
+                        <br>
+
+                        <small>Fecha: <?php echo htmlspecialchars($factura['Fecha']); ?></small><br>
+                        <small>Local: <?php echo htmlspecialchars($factura['LocalNombre']); ?></small>
+
+                        <!-- ✅ Checkout info (si tu controlador lo trae) -->
+                        <?php if (!empty($factura['FormaPago']) || isset($factura['Delivery'])): ?>
+                            <div class="mt-2">
+                                <?php if (!empty($factura['FormaPago'])): ?>
+                                    <span class="badge bg-light text-dark me-2">
+                                        Pago: <?php echo htmlspecialchars($factura['FormaPago']); ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if (isset($factura['Delivery'])): ?>
+                                    <span class="badge bg-light text-dark">
+                                        Delivery: <?php echo ((int)$factura['Delivery'] === 1) ? "Sí" : "No"; ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if (!empty($factura['DireccionEntrega'])): ?>
+                                    <div class="small mt-1">
+                                        Dirección: <?php echo htmlspecialchars($factura['DireccionEntrega']); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+
+                    </div>
+                    <div class="text-end">
+                        <span><strong>Total:</strong></span><br>
+                        <span class="fs-5">
+                            $<?php echo number_format($factura['totalFactura'], 0, ',', '.'); ?>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Artículo</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio unitario</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach (($factura['lineas'] ?? []) as $linea): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($linea['ArticuloNombre']); ?></td>
+                                        <td class="text-center"><?php echo (int)$linea['Cantidad']; ?></td>
+                                        <td class="text-end">
+                                            $<?php echo number_format($linea['PrecioUnit'], 0, ',', '.'); ?>
+                                        </td>
+                                        <td class="text-end">
+                                            $<?php echo number_format($linea['Subtotal'], 0, ',', '.'); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        <?php endforeach; ?>
+
+    <?php endif; ?>
+
+</main>
+
+<footer class="footer bg-danger text-center text-white py-3">
+    <div class="container">
+        <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
