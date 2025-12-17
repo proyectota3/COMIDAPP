@@ -1,8 +1,23 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// 1) Asegurar que exista el carrito en la sesión
-if (!isset($_SESSION['carrito'])) {
+/**
+ * VISTA: verCarrito.php
+ * --------------------
+ * - Muestra el carrito del cliente.
+ * - Permite eliminar un ítem por índice (GET eliminar).
+ * - Permite vaciar el carrito completo (GET vaciar).
+ * - Calcula cantidad total y total $.
+ *
+ * IMPORTANTE:
+ * - Ahora "Confirmar compra" NO ejecuta finalizarCompra.php directamente.
+ * - "Confirmar compra" lleva a pages/checkout.php (pantalla intermedia).
+ */
+
+// 1) Asegurar carrito en la sesión
+if (!isset($_SESSION['carrito']) || !is_array($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
 $carrito = &$_SESSION['carrito'];
@@ -10,11 +25,19 @@ $carrito = &$_SESSION['carrito'];
 // 2) ELIMINAR ÍTEM (por índice)
 if (isset($_GET['eliminar'])) {
     $id = (int) $_GET['eliminar'];
+
     if (isset($carrito[$id])) {
         unset($carrito[$id]);
+
         // Reindexar para que los índices queden prolijos
         $carrito = array_values($carrito);
     }
+
+    // Si el carrito quedó vacío, limpiamos el local guardado
+    if (empty($carrito)) {
+        unset($_SESSION['local_carrito']);
+    }
+
     header("Location: verCarrito.php");
     exit();
 }
@@ -22,6 +45,7 @@ if (isset($_GET['eliminar'])) {
 // 3) VACIAR TODO EL CARRITO
 if (isset($_GET['vaciar'])) {
     $carrito = [];
+    unset($_SESSION['local_carrito']); // ✅ clave: liberar el local del carrito
     header("Location: verCarrito.php");
     exit();
 }
@@ -34,9 +58,10 @@ foreach ($carrito as $item) {
     $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
     $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
     if ($cantidad < 1) $cantidad = 1;
+    if ($precio < 0) $precio = 0;
 
     $subtotal = $precio * $cantidad;
-    $total   += $subtotal;
+    $total += $subtotal;
     $cantidadTotal += $cantidad;
 }
 ?>
@@ -58,7 +83,7 @@ foreach ($carrito as $item) {
 <body>
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg bg-danger">
+<nav class="navbar navbar-expand-lg bg-danger navbar-dark">
     <div class="container-fluid">
 
         <!-- LOGO -->
@@ -67,7 +92,7 @@ foreach ($carrito as $item) {
         </a>
 
         <!-- BOTÓN RESPONSIVE -->
-        <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse"
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarContent">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -87,14 +112,18 @@ foreach ($carrito as $item) {
                 <!-- SOLO CLIENTE -->
                 <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 3): ?>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./misCompras.php">Mis compras</a>
+                        <a class="nav-link text-white" href="./misCompras.php">
+                            <i class="fa-solid fa-bag-shopping me-1"></i> Mis compras
+                        </a>
                     </li>
                 <?php endif; ?>
 
                 <!-- SOLO EMPRESA -->
                 <?php if (isset($_SESSION['id']) && ($_SESSION['rol'] ?? null) == 2): ?>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./misVentas.php">Mis ventas</a>
+                        <a class="nav-link text-white" href="./misVentas.php">
+                            <i class="fa-solid fa-chart-line me-1"></i> Mis ventas
+                        </a>
                     </li>
                 <?php endif; ?>
             </ul>
@@ -110,26 +139,19 @@ foreach ($carrito as $item) {
             <ul class="navbar-nav d-flex align-items-center ms-3">
 
                 <?php if (isset($_SESSION['id'])): ?>
-                    <!-- PERFIL -->
                     <li class="nav-item me-3">
                         <a class="nav-link text-white d-flex align-items-center" href="./perfil.php">
                             <i class="fa-solid fa-user fa-lg me-2"></i>
-                            <span><?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['user']); ?></span>
+                            <span><?php echo htmlspecialchars($_SESSION['nombre'] ?? ($_SESSION['user'] ?? 'Usuario')); ?></span>
                         </a>
                     </li>
 
-                    <!-- CERRAR SESIÓN -->
                     <li class="nav-item">
-                        <a class="btn btn-outline-light" href="../logout.php">
-                            Cerrar sesión
-                        </a>
+                        <a class="btn btn-outline-light" href="../logout.php">Cerrar sesión</a>
                     </li>
                 <?php else: ?>
-                    <!-- INICIAR SESIÓN -->
                     <li class="nav-item">
-                        <a class="btn btn-outline-light" href="../loginApp.php">
-                            Iniciar sesión
-                        </a>
+                        <a class="btn btn-outline-light" href="../loginApp.php">Iniciar sesión</a>
                     </li>
                 <?php endif; ?>
 
@@ -148,15 +170,13 @@ foreach ($carrito as $item) {
 
 <main class="container my-4">
 
-    <!-- Mensajes de error (locales distintos, carrito vacío, etc.) -->
+    <!-- Mensajes -->
     <?php if (isset($_GET['error']) && $_GET['error'] == 'locales_distintos'): ?>
         <div class="alert alert-warning">
             No podés mezclar productos de distintos locales en una misma compra.
         </div>
     <?php elseif (isset($_GET['error']) && $_GET['error'] == 'carrito_vacio'): ?>
-        <div class="alert alert-info">
-            Tu carrito está vacío.
-        </div>
+        <div class="alert alert-info">Tu carrito está vacío.</div>
     <?php endif; ?>
 
     <?php if (empty($carrito)): ?>
@@ -169,7 +189,7 @@ foreach ($carrito as $item) {
 
         <div class="mb-3 d-flex justify-content-between align-items-center">
             <div>
-                <strong>Ítems en el carrito:</strong> <?php echo $cantidadTotal; ?>
+                <strong>Ítems en el carrito:</strong> <?php echo (int)$cantidadTotal; ?>
             </div>
             <div>
                 <strong>Total:</strong>
@@ -190,53 +210,46 @@ foreach ($carrito as $item) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($carrito as $idx => $item): 
-                        $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
-                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
-                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
-                        if ($cantidad < 1) $cantidad = 1;
-                        $subtotal = $precio * $cantidad;
-                    ?>
-                        <tr>
-                            <td><?php echo $idx + 1; ?></td>
-                            <td><?php echo $nombre; ?></td>
-                            <td class="text-center"><?php echo $cantidad; ?></td>
-                            <td class="text-end">
-                                $<?php echo number_format($precio, 0, ',', '.'); ?>
-                            </td>
-                            <td class="text-end">
-                                $<?php echo number_format($subtotal, 0, ',', '.'); ?>
-                            </td>
-                            <td class="text-center">
-                                <a href="verCarrito.php?eliminar=<?php echo $idx; ?>"
-                                   class="btn btn-sm btn-outline-danger">
-                                    <i class="fa-solid fa-trash"></i> Quitar
-                                </a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                <?php foreach ($carrito as $idx => $item):
+                    $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
+                    $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
+                    $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                    if ($cantidad < 1) $cantidad = 1;
+                    if ($precio < 0) $precio = 0;
+                    $subtotal = $precio * $cantidad;
+                ?>
+                    <tr>
+                        <td><?php echo $idx + 1; ?></td>
+                        <td><?php echo $nombre; ?></td>
+                        <td class="text-center"><?php echo $cantidad; ?></td>
+                        <td class="text-end">$<?php echo number_format($precio, 0, ',', '.'); ?></td>
+                        <td class="text-end">$<?php echo number_format($subtotal, 0, ',', '.'); ?></td>
+                        <td class="text-center">
+                            <a href="verCarrito.php?eliminar=<?php echo $idx; ?>" class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i> Quitar
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
 
-        <!-- BOTONES DE ACCIÓN -->
+        <!-- ACCIONES -->
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <div>
-                <a href="../indexApp.php" class="btn btn-outline-secondary">
-                    <i class="fa-solid fa-arrow-left"></i> Seguir comprando
-                </a>
-            </div>
+            <a href="../indexApp.php" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Seguir comprando
+            </a>
 
             <div class="d-flex gap-2">
                 <a href="verCarrito.php?vaciar=1" class="btn btn-outline-danger">
                     <i class="fa-solid fa-trash-can"></i> Vaciar carrito
                 </a>
 
-                <form action="../controlador/finalizarCompra.php" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fa-solid fa-check"></i> Confirmar compra
-                    </button>
-                </form>
+                <!-- ✅ Ahora confirmación va a CHECKOUT -->
+                <a href="./checkout.php" class="btn btn-success">
+                    <i class="fa-solid fa-check"></i> Confirmar compra
+                </a>
             </div>
         </div>
 
@@ -250,8 +263,6 @@ foreach ($carrito as $item) {
     </div>
 </footer>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

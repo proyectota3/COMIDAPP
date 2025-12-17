@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // 1) Verificar que esté logueado y sea cliente
 if (!isset($_SESSION['id']) || !isset($_SESSION['rol']) || $_SESSION['rol'] != 3) {
@@ -20,6 +22,12 @@ $sql = "
         c.NumFactura,
         c.Fecha,
         c.Cantidad,
+
+        -- ✅ Datos checkout (se repiten por línea, pero nos sirven para mostrar 1 vez por factura)
+        c.FormaPago,
+        c.Delivery,
+        c.DireccionEntrega,
+
         l.Nombre      AS LocalNombre,
         a.Nombre      AS ArticuloNombre,
         v.Precio      AS PrecioUnit,
@@ -31,8 +39,8 @@ $sql = "
         ON c.CodigoArt = a.Codigo
     JOIN vende v
         ON c.IDLoc = v.IDLoc
-    AND c.CodigoArt = v.CodigoArt
-    AND c.FechaIniPrecio = v.FechaIniPrecio
+       AND c.CodigoArt = v.CodigoArt
+       AND c.FechaIniPrecio = v.FechaIniPrecio
     WHERE c.IDCli = :idCli
     ORDER BY c.Fecha DESC, c.NumFactura DESC
 ";
@@ -50,11 +58,17 @@ foreach ($lineas as $c) {
 
     if (!isset($facturas[$nf])) {
         $facturas[$nf] = [
-            'NumFactura'   => $nf,
-            'Fecha'        => $c['Fecha'],
-            'LocalNombre'  => $c['LocalNombre'],
-            'totalFactura' => 0,
-            'lineas'       => [],
+            'NumFactura'        => $nf,
+            'Fecha'             => $c['Fecha'],
+            'LocalNombre'       => $c['LocalNombre'],
+
+            // ✅ Checkout (mostrar arriba)
+            'FormaPago'         => $c['FormaPago'] ?? null,
+            'Delivery'          => isset($c['Delivery']) ? (int)$c['Delivery'] : 0,
+            'DireccionEntrega'  => $c['DireccionEntrega'] ?? null,
+
+            'totalFactura'      => 0,
+            'lineas'            => [],
         ];
     }
 
@@ -69,8 +83,11 @@ foreach ($lineas as $c) {
     $totalGastado += (float)$c['Subtotal'];
 }
 
+// ✅ Reindexar (para que foreach en la vista sea limpio)
+$facturas = array_values($facturas);
+
 // Retornar datos a la vista
 return [
-    "facturas"      => $facturas,
-    "totalGastado"  => $totalGastado
+    "facturas"     => $facturas,
+    "totalGastado" => $totalGastado
 ];

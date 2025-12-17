@@ -1,25 +1,35 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>COMIDAPP</title>
-        <!-- Bootstrap 5 CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <!-- Font Awesome para íconos -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <!-- Enlace a tu CSS -->
-        <link href="../styles.css" rel="stylesheet">
-    </head>
-    
-<body>
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-?>
 
+// Seguridad: solo empresa
+if (!isset($_SESSION['id'], $_SESSION['rol']) || $_SESSION['rol'] != 2) {
+    header("Location: ../loginApp.php");
+    exit();
+}
+
+// 🔹 Ejecutar controlador (SOLO LECTURA)
+$data = require_once "../controlador/verVentas.php";
+
+$pendientes = $data['pendientes'] ?? [];
+$entregados = $data['entregados'] ?? [];
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMIDAPP - Mis ventas</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="../styles.css" rel="stylesheet">
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+<!-- NAVBAR (igual al resto del sistema) -->
 <nav class="navbar navbar-expand-lg bg-danger navbar-dark">
     <div class="container-fluid">
 
@@ -210,24 +220,122 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </div>
 </nav>
+<!-- HEADER -->
+<header class="bg-light py-4">
+    <div class="container">
+        <h1 class="h3 mb-0">
+            <i class="fa-solid fa-chart-line"></i> Mis ventas
+        </h1>
+        <p class="text-muted mb-0">Pedidos realizados por clientes</p>
+    </div>
+</header>
 
+<!-- CONTENIDO -->
+<main class="container my-4 flex-grow-1">
 
-    
-    <header class="bg-light py-5">
-    
-    </header>
+    <!-- ================= PENDIENTES ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="m-0">
+            <i class="fa-solid fa-clock"></i> Pendientes
+        </h4>
+        <span class="badge bg-warning text-dark">
+            <?php echo count($pendientes); ?>
+        </span>
+    </div>
 
-    <main class="container my-5 flex-grow-1">
+    <?php if (empty($pendientes)): ?>
+        <div class="alert alert-info">No hay pedidos pendientes.</div>
+    <?php else: ?>
+        <?php foreach ($pendientes as $p): ?>
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Factura #<?php echo (int)$p['NumFactura']; ?></strong>
+                        <span class="badge bg-warning text-dark ms-2">Pendiente</span><br>
+                        <small class="text-muted">
+                            Fecha: <?php echo htmlspecialchars($p['Fecha']); ?> |
+                            Local: <?php echo htmlspecialchars($p['LocalNombre']); ?>
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <strong>Total</strong>
+                        <div class="fs-5">
+                            $<?php echo number_format($p['Total'], 0, ',', '.'); ?>
+                        </div>
+                    </div>
+                </div>
 
-    </main>
-    <footer class="footer bg-danger text-center text-white py-3">
-        <div class="container">
-            <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
-        </div>
-    </footer>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                <div class="card-body">
+                    <span class="badge bg-light text-dark me-2">
+                        Pago: <?php echo htmlspecialchars($p['FormaPago']); ?>
+                    </span>
+
+                    <span class="badge bg-light text-dark">
+                        Delivery: <?php echo $p['Delivery'] ? 'Sí' : 'No'; ?>
+                    </span>
+
+                    <?php if (!empty($p['DireccionEntrega'])): ?>
+                        <div class="small mt-2">
+                            <strong>Dirección:</strong>
+                            <?php echo htmlspecialchars($p['DireccionEntrega']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- 🔹 Acción (otro controller) -->
+                    <form action="../controlador/confirmarPedido.php" method="POST" class="text-end mt-3">
+                        <input type="hidden" name="NumFactura" value="<?php echo (int)$p['NumFactura']; ?>">
+                        <input type="hidden" name="IDLoc" value="<?php echo (int)$p['IDLoc']; ?>">
+                        <button class="btn btn-success">
+                            <i class="fa-solid fa-check"></i> Marcar como entregado
+                        </button>
+                    </form>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+    <hr class="my-4">
+
+    <!-- ================= ENTREGADOS ================= -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="m-0">
+            <i class="fa-solid fa-circle-check"></i> Entregados
+        </h4>
+        <span class="badge bg-success">
+            <?php echo count($entregados); ?>
+        </span>
+    </div>
+
+    <?php if (empty($entregados)): ?>
+        <div class="alert alert-secondary">Aún no hay pedidos entregados.</div>
+    <?php else: ?>
+        <?php foreach ($entregados as $p): ?>
+            <div class="card mb-2">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Factura #<?php echo (int)$p['NumFactura']; ?></strong>
+                        <span class="badge bg-success ms-2">Entregado</span><br>
+                        <small class="text-muted">
+                            <?php echo htmlspecialchars($p['Fecha']); ?> |
+                            <?php echo htmlspecialchars($p['LocalNombre']); ?>
+                        </small>
+                    </div>
+                    <div class="fw-bold">
+                        $<?php echo number_format($p['Total'], 0, ',', '.'); ?>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+
+</main>
+
+<footer class="footer bg-danger text-center text-white py-3">
+    <div class="container">
+        <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

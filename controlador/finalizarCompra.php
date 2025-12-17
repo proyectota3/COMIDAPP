@@ -20,30 +20,67 @@ $carrito = $_SESSION['carrito'];
 // 3) Validar que todos los productos sean del mismo local
 $primerLocal = $carrito[0]['idLocal'] ?? null;
 foreach ($carrito as $item) {
-    if ($item['idLocal'] != $primerLocal) {
+    if (($item['idLocal'] ?? null) != $primerLocal) {
         header("Location: ../pages/verCarrito.php?error=locales_distintos");
         exit();
     }
 }
 $idLocal = (int) $primerLocal;
 
-// 4) Conexión BD
+// 4) Leer checkout (POST)
+$formaPago = $_POST['forma_pago'] ?? null;
+$delivery  = $_POST['delivery'] ?? null;
+$direccion = trim($_POST['direccion'] ?? '');
+
+$formasValidas = ['Efectivo', 'Tarjeta'];
+if (!in_array($formaPago, $formasValidas, true)) {
+    header("Location: ../pages/checkout.php?error=forma_pago");
+    exit();
+}
+if ($delivery !== "0" && $delivery !== "1") {
+    header("Location: ../pages/checkout.php?error=delivery");
+    exit();
+}
+
+// 5) Conexión BD
 require_once __DIR__ . "/../modelo/connectionComidApp.php";
 $db = new DatabaseComidApp();
 $conexion = $db->getConnection();
 
 try {
+    // 6) Validación REAL de delivery del local (server-side)
+    $stmtLocal = $conexion->prepare("SELECT Delivery FROM local WHERE ID = ? LIMIT 1");
+    $stmtLocal->execute([$idLocal]);
+    $rowLocal = $stmtLocal->fetch(PDO::FETCH_ASSOC);
+
+    $tieneDelivery = ($rowLocal && (int)($rowLocal['Delivery'] ?? 0) === 1);
+
+    // Si el local NO tiene delivery, forzamos delivery=0 y limpiamos dirección
+    if (!$tieneDelivery) {
+        $delivery = "0";
+        $direccion = null;
+    }
+
+    // Si pidió delivery y el local sí tiene, exigir dirección
+    if ($delivery === "1" && $direccion === "") {
+        header("Location: ../pages/checkout.php?error=direccion");
+        exit();
+    }
+    if ($delivery === "0") {
+        $direccion = null;
+    }
+
     $conexion->beginTransaction();
 
     $fechaHoy = date('Y-m-d');
 
-    // 5) Obtener un nuevo NumFactura (MISMA FACTURA para todos los ítems del carrito)
+    // 7) Nuevo NumFactura (misma factura para todos)
     $sqlNum = "SELECT IFNULL(MAX(NumFactura), 0) + 1 AS nuevaFactura FROM compra";
     $stmtNum = $conexion->query($sqlNum);
     $rowNum = $stmtNum->fetch(PDO::FETCH_ASSOC);
     $numFactura = (int) ($rowNum['nuevaFactura'] ?? 1);
 
-    // 6) Preparar consulta a VENDE para obtener FechaIniPrecio
+    // 8) FechaIniPrecio desde VENDE
     $sqlVende = "
         SELECT FechaIniPrecio
         FROM vende
@@ -53,27 +90,23 @@ try {
     ";
     $stmtVende = $conexion->prepare($sqlVende);
 
-    // 7) Preparar INSERT en COMPRA (una fila por artículo, mismo NumFactura)
+    // 9) INSERT (incluye checkout)
     $sqlCompra = "
         INSERT INTO compra
-            (NumFactura, IDCli, IDLoc, CodigoArt, Cantidad, Fecha, FechaIniPrecio, Valida)
+            (NumFactura, IDCli, IDLoc, CodigoArt, Cantidad, Fecha, FechaIniPrecio, Valida, FormaPago, Delivery, DireccionEntrega)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?, 1)
+            (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
     ";
     $stmtCompra = $conexion->prepare($sqlCompra);
 
-    // 8) Recorrer carrito e insertar cada artículo como detalle de la misma factura
+    // 10) Insert por item
     foreach ($carrito as $item) {
 
         $idLoc     = (int) $item['idLocal'];
         $codigoArt = (int) $item['codigoArt'];
         $cantidad  = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+        if ($cantidad < 1) $cantidad = 1;
 
-        if ($cantidad < 1) {
-            $cantidad = 1;
-        }
-
-        // Buscar la FechaIniPrecio en VENDE para ese local y artículo
         $stmtVende->execute([$idLoc, $codigoArt]);
         $rowVende = $stmtVende->fetch(PDO::FETCH_ASSOC);
 
@@ -83,30 +116,29 @@ try {
 
         $fechaIniPrecio = $rowVende['FechaIniPrecio'];
 
-        // Insertar línea de compra (detalle) compartiendo el mismo NumFactura
         $stmtCompra->execute([
-            $numFactura,      // 👉 MISMA FACTURA para todos los ítems del carrito
+            $numFactura,
             $idCliente,
             $idLoc,
             $codigoArt,
             $cantidad,
             $fechaHoy,
-            $fechaIniPrecio
+            $fechaIniPrecio,
+            $formaPago,
+            (int)$delivery,
+            $direccion
         ]);
     }
 
-    // 9) Confirmar transacción
     $conexion->commit();
 
-    // 10) Vaciar carrito
     unset($_SESSION['carrito']);
 
-    // 11) Redirigir al historial de compras
     header("Location: ../pages/misCompras.php?ok=1");
     exit();
 
 } catch (Exception $e) {
-    $conexion->rollBack();
+    if ($conexion->inTransaction()) $conexion->rollBack();
 
     echo "<h2>Error al procesar la compra</h2>";
     echo "<pre>" . htmlspecialchars($e->getMessage()) . "</pre>";

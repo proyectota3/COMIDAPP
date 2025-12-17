@@ -1,13 +1,14 @@
 <?php
-// Ejecutar el controlador
-$data = require_once "../controlador/verCompras.php";
-
-$facturas     = $data["facturas"];
-$totalGastado = $data["totalGastado"];
-
+// ✅ SIEMPRE iniciar sesión antes de usar $_SESSION o llamar controladores
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Ejecutar el controlador
+$data = require_once "../controlador/verCompras.php";
+
+$facturas     = $data["facturas"] ?? [];
+$totalGastado = $data["totalGastado"] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -42,7 +43,6 @@ if (session_status() === PHP_SESSION_NONE) {
             <!-- MENÚ IZQUIERDO -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-                <!-- Siempre visibles -->
                 <li class="nav-item">
                     <a class="nav-link text-white" href="./contacto.php">Contacto</a>
                 </li>
@@ -51,8 +51,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     <a class="nav-link text-white" href="./descargar.php">Descargar</a>
                 </li>
 
-                <!-- Cliente: Mis compras (rol = 3) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                <!-- Cliente -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misCompras.php">
                             <i class="fa-solid fa-bag-shopping me-1"></i> Mis compras
@@ -60,8 +60,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     </li>
                 <?php endif; ?>
 
-                <!-- Empresa: Mis locales + Mis ventas (rol = 2) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
+                <!-- Empresa -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misLocales.php">Mis locales</a>
                     </li>
@@ -85,14 +85,12 @@ if (session_status() === PHP_SESSION_NONE) {
             <!-- ZONA DERECHA -->
             <ul class="navbar-nav d-flex align-items-center ms-3">
 
-                <!-- 🔽 CARRITO TIPO VENTANA (solo clientes) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                <!-- 🛒 CARRITO (solo clientes) -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
 
                     <?php
-                    // Aseguramos variable $carrito para evitar avisos
                     $carrito = $_SESSION['carrito'] ?? [];
-                    // Si no te llega $cantidadCarrito desde el controlador, lo calculamos:
-                    $cantidadCarrito = $cantidadCarrito ?? array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
+                    $cantidadCarrito = array_sum(array_map(fn($i) => (int)($i['cantidad'] ?? 1), $carrito));
                     ?>
 
                     <li class="nav-item dropdown me-3">
@@ -107,10 +105,9 @@ if (session_status() === PHP_SESSION_NONE) {
                             <?php endif; ?>
                         </a>
 
-                        <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
                         <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
                              aria-labelledby="carritoDropdown"
-                             style="width: 420px; height: auto; max-height: none; overflow: visible; border-radius: 16px;">
+                             style="width: 420px; border-radius: 16px;">
 
                             <h5 class="mb-3 text-center">
                                 <i class="fa-solid fa-cart-shopping"></i> Mi carrito
@@ -120,7 +117,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <p class="text-center text-muted mb-0">El carrito está vacío.</p>
                             <?php else: ?>
 
-                                <!-- LISTA DE PRODUCTOS -->
                                 <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
                                     <?php foreach ($carrito as $idx => $item):
                                         $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
@@ -133,7 +129,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                                 <small>$<?php echo $precio; ?> x <?php echo $cantidad; ?></small>
                                             </div>
 
-                                            <!-- ELIMINAR ITEM -->
                                             <a href="./verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
                                                 <i class="fa-solid fa-trash"></i>
                                             </a>
@@ -141,13 +136,11 @@ if (session_status() === PHP_SESSION_NONE) {
                                     <?php endforeach; ?>
                                 </ul>
 
-                                <!-- BOTONES -->
                                 <div class="d-grid gap-2">
                                     <a href="./verCarrito.php" class="btn btn-primary">Ver carrito</a>
 
-                                    <form action="../controlador/finalizarCompra.php" method="POST" class="d-grid">
-                                        <button type="submit" class="btn btn-success">Confirmar compra</button>
-                                    </form>
+                                    <!-- ✅ AHORA VA A CHECKOUT (no a finalizarCompra directo) -->
+                                    <a href="./checkout.php" class="btn btn-success">Ir a checkout</a>
 
                                     <a href="./verCarrito.php?vaciar=1" class="btn btn-outline-danger">Vaciar carrito</a>
                                 </div>
@@ -158,8 +151,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
                 <?php endif; ?>
 
-
-                <!-- 🔽 DROPDOWN USUARIO -->
+                <!-- 👤 USUARIO -->
                 <?php if (isset($_SESSION['id'])): ?>
 
                     <li class="nav-item dropdown">
@@ -214,7 +206,6 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 </nav>
 
-
 <header class="bg-light py-4">
     <div class="container">
         <h1 class="h3 mb-0">
@@ -225,14 +216,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <main class="container my-4">
 
-    <!-- Mensaje de compra exitosa -->
     <?php if (isset($_GET['ok']) && $_GET['ok'] == 1): ?>
         <div class="alert alert-success">
             ¡Tu compra se registró correctamente!
         </div>
     <?php endif; ?>
 
-    <!-- Si no hay compras -->
     <?php if (empty($facturas)): ?>
 
         <div class="alert alert-info">
@@ -246,7 +235,6 @@ if (session_status() === PHP_SESSION_NONE) {
             $<?php echo number_format($totalGastado, 0, ',', '.'); ?>
         </div>
 
-        <!-- UNA CARD POR FACTURA -->
         <?php foreach ($facturas as $factura): ?>
             <div class="card mb-4 shadow-sm">
 
@@ -255,6 +243,30 @@ if (session_status() === PHP_SESSION_NONE) {
                         <strong>Factura N° <?php echo htmlspecialchars($factura['NumFactura']); ?></strong><br>
                         <small>Fecha: <?php echo htmlspecialchars($factura['Fecha']); ?></small><br>
                         <small>Local: <?php echo htmlspecialchars($factura['LocalNombre']); ?></small>
+
+                        <!-- ✅ Checkout info (si tu controlador lo trae) -->
+                        <?php if (!empty($factura['FormaPago']) || isset($factura['Delivery'])): ?>
+                            <div class="mt-2">
+                                <?php if (!empty($factura['FormaPago'])): ?>
+                                    <span class="badge bg-light text-dark me-2">
+                                        Pago: <?php echo htmlspecialchars($factura['FormaPago']); ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if (isset($factura['Delivery'])): ?>
+                                    <span class="badge bg-light text-dark">
+                                        Delivery: <?php echo ((int)$factura['Delivery'] === 1) ? "Sí" : "No"; ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if (!empty($factura['DireccionEntrega'])): ?>
+                                    <div class="small mt-1">
+                                        Dirección: <?php echo htmlspecialchars($factura['DireccionEntrega']); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+
                     </div>
                     <div class="text-end">
                         <span><strong>Total:</strong></span><br>
@@ -276,7 +288,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($factura['lineas'] as $linea): ?>
+                                <?php foreach (($factura['lineas'] ?? []) as $linea): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($linea['ArticuloNombre']); ?></td>
                                         <td class="text-center"><?php echo (int)$linea['Cantidad']; ?></td>
@@ -306,7 +318,6 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 </footer>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
