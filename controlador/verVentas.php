@@ -1,43 +1,111 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
-
-if (!isset($_SESSION['id'], $_SESSION['rol']) || $_SESSION['rol'] != 2) {
-  header("Location: ../loginApp.php");
-  exit();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$idEmpresa = (int)$_SESSION['id']; // OJO: si tu session id es de usuariosweb y no IDEmp, ajustamos
+/**
+ * CONTROLADOR: verVentas.php
+ * --------------------------
+ * Rol: Empresa (rol 2)
+ *
+ * Objetivo:
+ * - Traer facturas (ventas) de los locales de la empresa
+ * - Agrupar por NumFactura (una factura = varias líneas en compra)
+ * - Calcular total de la factura (SUM(precio * cantidad))
+ * - Separar en:
+ *   - pendientes: Valida = 0
+ *   - entregados: Valida = 1
+ *
+ * Devuelve:
+ * [
+ *   'pendientes' => [...],
+ *   'entregados' => [...]
+ * ]
+ */
 
+// 1) Seguridad: solo empresa (rol 2)
+if (!isset($_SESSION['id'], $_SESSION['rol']) || (int)$_SESSION['rol'] !== 2) {
+    header("Location: ../loginApp.php");
+    exit();
+}
+
+/**
+ * ⚠️ Nota importante:
+ * Acá asumimos que $_SESSION['id'] representa el ID de la empresa (IDEmp)
+ * y que local tiene un campo IDEmp que apunta a esa empresa.
+ *
+ * Si en tu sistema la sesión guarda otro id (ej: usuariosweb), hay que mapearlo.
+ */
+$idEmpresa = (int) $_SESSION['id'];
+
+// 2) Conexión BD
 require_once __DIR__ . "/../modelo/connectionComidApp.php";
 $db = new DatabaseComidApp();
 $cn = $db->getConnection();
 
-/*
-  Ajustá este JOIN según tu modelo:
-  empresa -> local (local.IDEmp = empresa.IDEmp) por ejemplo.
-*/
+// 3) Traer facturas agrupadas por NumFactura
 $sql = "
 SELECT
-  c.NumFactura,
-  c.Fecha,
-  c.IDLoc,
-  l.Nombre AS LocalNombre,
-  c.FormaPago,
-  c.Delivery,
-  c.DireccionEntrega,
-  c.Valida,
-  SUM(v.Precio * c.Cantidad) AS Total
+    c.NumFactura,
+    c.Fecha,
+    c.IDLoc,
+    l.Nombre AS LocalNombre,
+
+    -- Datos de checkout (repetidos por línea, pero nos sirven para mostrar por factura)
+    c.FormaPago,
+    c.Delivery,
+    c.DireccionEntrega,
+
+    -- Estado de la factura:
+    -- 0 = Pendiente, 1 = Entregado
+    c.Valida,
+
+    -- Total por factura
+    SUM(v.Precio * c.Cantidad) AS Total
 FROM compra c
-JOIN local l ON c.IDLoc = l.ID
-JOIN vende v ON v.IDLoc = c.IDLoc AND v.CodigoArt = c.CodigoArt AND v.FechaIniPrecio = c.FechaIniPrecio
-WHERE c.Valida = 0
-  AND l.IDEmp = :idEmp
-GROUP BY c.NumFactura, c.Fecha, c.IDLoc, l.Nombre, c.FormaPago, c.Delivery, c.DireccionEntrega, c.Valida
-ORDER BY c.Fecha DESC, c.NumFactura DESC
+JOIN local l
+    ON l.ID = c.IDLoc
+JOIN vende v
+    ON v.IDLoc = c.IDLoc
+   AND v.CodigoArt = c.CodigoArt
+   AND v.FechaIniPrecio = c.FechaIniPrecio
+WHERE l.IDEmp = :idEmp
+GROUP BY
+    c.NumFactura, c.Fecha, c.IDLoc, l.Nombre,
+    c.FormaPago, c.Delivery, c.DireccionEntrega, c.Valida
+ORDER BY
+    c.Valida ASC,          -- primero pendientes (0), luego entregados (1)
+    c.Fecha DESC,
+    c.NumFactura DESC
 ";
 
 $stmt = $cn->prepare($sql);
 $stmt->execute([':idEmp' => $idEmpresa]);
-$pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$facturas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-return ["pedidos" => $pedidos];
+// 4) Separar pendientes / entregados para que la VISTA no tenga lógica
+$pendientes = [];
+$entregados = [];
+
+foreach ($facturas as $f) {
+    $estado = (int)($f['Valida'] ?? 0);
+
+    // Normalizar tipos por prolijidad
+    $f['NumFactura'] = (int)$f['NumFactura'];
+    $f['IDLoc'] = (int)$f['IDLoc'];
+    $f['Delivery'] = (int)($f['Delivery'] ?? 0);
+    $f['Valida'] = $estado;
+    $f['Total'] = (float)($f['Total'] ?? 0);
+
+    if ($estado === 1) {
+        $entregados[] = $f;
+    } else {
+        $pendientes[] = $f;
+    }
+}
+
+// 5) Retornar a la vista
+return [
+    "pendientes" => $pendientes,
+    "entregados" => $entregados
+];
