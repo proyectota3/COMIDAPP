@@ -1,19 +1,40 @@
 <?php
+/**
+ * pages/misVentas.php
+ * -------------------------------------------------------
+ * VISTA para EMPRESA (rol 2)
+ * - Muestra pedidos pendientes (Valida=0)
+ * - Muestra pedidos entregados (Valida=1)
+ * - Permite marcar como entregado llamando a:
+ *      ../controlador/confirmarPedido.php
+ */
+
+// ✅ 0) Siempre iniciar sesión antes de usar $_SESSION
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Seguridad: solo empresa
-if (!isset($_SESSION['id'], $_SESSION['rol']) || $_SESSION['rol'] != 2) {
+// ✅ 1) Seguridad: solo EMPRESA (rol = 2)
+if (!isset($_SESSION['id'], $_SESSION['rol']) || (int)$_SESSION['rol'] !== 2) {
     header("Location: ../loginApp.php");
     exit();
 }
 
-// 🔹 Ejecutar controlador (SOLO LECTURA)
+// ✅ 2) Ejecutar controlador (SOLO LECTURA)
+// Este controller debe devolver:
+//   ['pendientes' => [...], 'entregados' => [...]]
 $data = require_once "../controlador/verVentas.php";
 
 $pendientes = $data['pendientes'] ?? [];
 $entregados = $data['entregados'] ?? [];
+
+// ✅ 3) Mensajes para feedback (cuando confirmas entrega)
+$ok     = $_GET['ok'] ?? null;
+$error  = $_GET['error'] ?? null;
+
+// Para debug: si confirmarPedido.php redirige con nf/loc en la url
+$nf     = $_GET['nf'] ?? null;
+$loc    = $_GET['loc'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -22,14 +43,19 @@ $entregados = $data['entregados'] ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COMIDAPP - Mis ventas</title>
 
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tu CSS -->
     <link href="../styles.css" rel="stylesheet">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
 
-<!-- NAVBAR (igual al resto del sistema) -->
+<!-- ================= NAVBAR (TU NAV TAL CUAL) ================= -->
 <nav class="navbar navbar-expand-lg bg-danger navbar-dark">
     <div class="container-fluid">
 
@@ -59,7 +85,7 @@ $entregados = $data['entregados'] ?? [];
                 </li>
 
                 <!-- Cliente: Mis compras (rol = 3) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && (int)$_SESSION['rol'] === 3): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misCompras.php">
                             <i class="fa-solid fa-bag-shopping me-1"></i> Mis compras
@@ -68,13 +94,13 @@ $entregados = $data['entregados'] ?? [];
                 <?php endif; ?>
 
                 <!-- Empresa: Mis locales + Mis ventas (rol = 2) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 2): ?>
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && (int)$_SESSION['rol'] === 2): ?>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./misLocales.php">Mis locales</a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./misVentas.php">
+                        <a class="nav-link text-white active" href="./misVentas.php">
                             <i class="fa-solid fa-chart-line me-1"></i> Mis ventas
                         </a>
                     </li>
@@ -92,14 +118,12 @@ $entregados = $data['entregados'] ?? [];
             <!-- ZONA DERECHA -->
             <ul class="navbar-nav d-flex align-items-center ms-3">
 
-                <!-- 🔽 CARRITO TIPO VENTANA (solo clientes) -->
-                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                <!-- 🔽 CARRITO (solo clientes) -->
+                <?php if (isset($_SESSION['id'], $_SESSION['rol']) && (int)$_SESSION['rol'] === 3): ?>
 
                     <?php
-                    // Aseguramos variable $carrito para evitar avisos
                     $carrito = $_SESSION['carrito'] ?? [];
-                    // Si no te llega $cantidadCarrito desde el controlador, lo calculamos:
-                    $cantidadCarrito = $cantidadCarrito ?? array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
+                    $cantidadCarrito = array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
                     ?>
 
                     <li class="nav-item dropdown me-3">
@@ -114,10 +138,9 @@ $entregados = $data['entregados'] ?? [];
                             <?php endif; ?>
                         </a>
 
-                        <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
                         <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
                              aria-labelledby="carritoDropdown"
-                             style="width: 420px; height: auto; max-height: none; overflow: visible; border-radius: 16px;">
+                             style="width: 420px; border-radius: 16px;">
 
                             <h5 class="mb-3 text-center">
                                 <i class="fa-solid fa-cart-shopping"></i> Mi carrito
@@ -127,12 +150,12 @@ $entregados = $data['entregados'] ?? [];
                                 <p class="text-center text-muted mb-0">El carrito está vacío.</p>
                             <?php else: ?>
 
-                                <!-- LISTA DE PRODUCTOS -->
                                 <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
                                     <?php foreach ($carrito as $idx => $item):
                                         $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
-                                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
-                                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
+                                        $precio   = (float)($item['precio'] ?? 0);
+                                        $cantidad = (int)($item['cantidad'] ?? 1);
+                                        if ($cantidad < 1) $cantidad = 1;
                                     ?>
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
@@ -140,7 +163,6 @@ $entregados = $data['entregados'] ?? [];
                                                 <small>$<?php echo $precio; ?> x <?php echo $cantidad; ?></small>
                                             </div>
 
-                                            <!-- ELIMINAR ITEM -->
                                             <a href="./verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
                                                 <i class="fa-solid fa-trash"></i>
                                             </a>
@@ -148,14 +170,9 @@ $entregados = $data['entregados'] ?? [];
                                     <?php endforeach; ?>
                                 </ul>
 
-                                <!-- BOTONES -->
                                 <div class="d-grid gap-2">
                                     <a href="./verCarrito.php" class="btn btn-primary">Ver carrito</a>
-
-                                    <form action="../controlador/finalizarCompra.php" method="POST" class="d-grid">
-                                        <button type="submit" class="btn btn-success">Confirmar compra</button>
-                                    </form>
-
+                                    <a href="./checkout.php" class="btn btn-success">Ir a checkout</a>
                                     <a href="./verCarrito.php?vaciar=1" class="btn btn-outline-danger">Vaciar carrito</a>
                                 </div>
 
@@ -164,7 +181,6 @@ $entregados = $data['entregados'] ?? [];
                     </li>
 
                 <?php endif; ?>
-
 
                 <!-- 🔽 DROPDOWN USUARIO -->
                 <?php if (isset($_SESSION['id'])): ?>
@@ -182,14 +198,6 @@ $entregados = $data['entregados'] ?? [];
                                     <i class="fa-solid fa-id-card me-2"></i> Perfil
                                 </a>
                             </li>
-
-                            <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
-                                <li>
-                                    <a class="dropdown-item" href="./misCompras.php">
-                                        <i class="fa-solid fa-bag-shopping me-2"></i> Mis compras
-                                    </a>
-                                </li>
-                            <?php endif; ?>
 
                             <li>
                                 <a class="dropdown-item" href="./infoUsuario.php">
@@ -220,7 +228,8 @@ $entregados = $data['entregados'] ?? [];
         </div>
     </div>
 </nav>
-<!-- HEADER -->
+
+<!-- ================= HEADER ================= -->
 <header class="bg-light py-4">
     <div class="container">
         <h1 class="h3 mb-0">
@@ -230,8 +239,33 @@ $entregados = $data['entregados'] ?? [];
     </div>
 </header>
 
-<!-- CONTENIDO -->
+<!-- ================= CONTENIDO ================= -->
 <main class="container my-4 flex-grow-1">
+
+    <!-- ✅ Alertas de feedback -->
+    <?php if ($ok == 1): ?>
+        <div class="alert alert-success">
+            <i class="fa-solid fa-circle-check me-1"></i>
+            Pedido marcado como <strong>entregado</strong>.
+        </div>
+    <?php endif; ?>
+
+    <?php if ($error === "datos"): ?>
+        <div class="alert alert-danger">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+            Faltan datos para confirmar el pedido.
+        </div>
+    <?php elseif ($error === "no_update"): ?>
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            No se actualizó ningún pedido (capaz ya estaba entregado o no coincide).
+            <?php if ($nf && $loc): ?>
+                <div class="small mt-1">
+                    Debug: NumFactura=<?php echo htmlspecialchars($nf); ?> | IDLoc=<?php echo htmlspecialchars($loc); ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <!-- ================= PENDIENTES ================= -->
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -253,25 +287,25 @@ $entregados = $data['entregados'] ?? [];
                         <strong>Factura #<?php echo (int)$p['NumFactura']; ?></strong>
                         <span class="badge bg-warning text-dark ms-2">Pendiente</span><br>
                         <small class="text-muted">
-                            Fecha: <?php echo htmlspecialchars($p['Fecha']); ?> |
-                            Local: <?php echo htmlspecialchars($p['LocalNombre']); ?>
+                            Fecha: <?php echo htmlspecialchars($p['Fecha'] ?? ''); ?> |
+                            Local: <?php echo htmlspecialchars($p['LocalNombre'] ?? ''); ?>
                         </small>
                     </div>
                     <div class="text-end">
                         <strong>Total</strong>
                         <div class="fs-5">
-                            $<?php echo number_format($p['Total'], 0, ',', '.'); ?>
+                            $<?php echo number_format((float)($p['Total'] ?? 0), 0, ',', '.'); ?>
                         </div>
                     </div>
                 </div>
 
                 <div class="card-body">
                     <span class="badge bg-light text-dark me-2">
-                        Pago: <?php echo htmlspecialchars($p['FormaPago']); ?>
+                        Pago: <?php echo htmlspecialchars($p['FormaPago'] ?? '-'); ?>
                     </span>
 
                     <span class="badge bg-light text-dark">
-                        Delivery: <?php echo $p['Delivery'] ? 'Sí' : 'No'; ?>
+                        Delivery: <?php echo ((int)($p['Delivery'] ?? 0) === 1) ? 'Sí' : 'No'; ?>
                     </span>
 
                     <?php if (!empty($p['DireccionEntrega'])): ?>
@@ -281,7 +315,7 @@ $entregados = $data['entregados'] ?? [];
                         </div>
                     <?php endif; ?>
 
-                    <!-- 🔹 Acción (otro controller) -->
+                    <!-- ✅ Botón que llama al UPDATE (confirmarPedido.php) -->
                     <form action="../controlador/confirmarPedido.php" method="POST" class="text-end mt-3">
                         <input type="hidden" name="NumFactura" value="<?php echo (int)$p['NumFactura']; ?>">
                         <input type="hidden" name="IDLoc" value="<?php echo (int)$p['IDLoc']; ?>">
@@ -316,12 +350,12 @@ $entregados = $data['entregados'] ?? [];
                         <strong>Factura #<?php echo (int)$p['NumFactura']; ?></strong>
                         <span class="badge bg-success ms-2">Entregado</span><br>
                         <small class="text-muted">
-                            <?php echo htmlspecialchars($p['Fecha']); ?> |
-                            <?php echo htmlspecialchars($p['LocalNombre']); ?>
+                            <?php echo htmlspecialchars($p['Fecha'] ?? ''); ?> |
+                            <?php echo htmlspecialchars($p['LocalNombre'] ?? ''); ?>
                         </small>
                     </div>
                     <div class="fw-bold">
-                        $<?php echo number_format($p['Total'], 0, ',', '.'); ?>
+                        $<?php echo number_format((float)($p['Total'] ?? 0), 0, ',', '.'); ?>
                     </div>
                 </div>
             </div>
