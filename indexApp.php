@@ -223,7 +223,7 @@ $cantidadCarrito = count($carrito);
                             <li><hr class="dropdown-divider"></li>
 
                             <li>
-                                <a class="dropdown-item text-danger" href="./logout.php">
+                                <a class="dropdown-item text-danger" href="logout.php">
                                     <i class="fa-solid fa-right-from-bracket me-2"></i> Cerrar sesión
                                 </a>
                             </li>
@@ -234,7 +234,7 @@ $cantidadCarrito = count($carrito);
 
                     <!-- ✅ Invitado: Iniciar sesión -->
                     <li class="nav-item">
-                        <a class="btn btn-outline-light" href="./loginApp.php">
+                        <a class="btn btn-outline-light" href="/loginApp.php">
                             Iniciar sesión
                         </a>
                     </li>
