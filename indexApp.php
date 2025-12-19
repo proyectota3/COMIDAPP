@@ -193,7 +193,7 @@ $cantidadCarrito = count($carrito);
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#"
-                           id="usuarioDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        id="usuarioDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fa-solid fa-user fa-lg me-1"></i>
                             <span>
                                 <?php echo htmlspecialchars($_SESSION['nombre'] ?? ($_SESSION['user'] ?? 'Mi cuenta')); ?>
@@ -234,7 +234,7 @@ $cantidadCarrito = count($carrito);
 
                     <!-- ✅ Invitado: Iniciar sesión -->
                     <li class="nav-item">
-                        <a class="btn btn-outline-light" href="/loginApp.php">
+                        <a class="btn btn-outline-light" href="loginApp.php">
                             Iniciar sesión
                         </a>
                     </li>
@@ -396,26 +396,32 @@ $cantidadCarrito = count($carrito);
                                                     $<?php echo htmlspecialchars($prod['Precio']); ?>
                                                 </span>
 
-                                                <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
+                                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
 
-                                                    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
-                                                        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
-                                                        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
-                                                        <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
-                                                        <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
-                                                        <input type="hidden" name="cantidad" value="1">
+    <!-- ✅ Cliente: puede comprar -->
+    <form action="controlador/agregarCarrito.php" method="POST" class="d-inline">
+        <input type="hidden" name="producto" value="<?php echo htmlspecialchars($prod['Nombre']); ?>">
+        <input type="hidden" name="precio" value="<?php echo htmlspecialchars($prod['Precio']); ?>">
+        <input type="hidden" name="idLocal" value="<?php echo (int)$row['ID']; ?>">
+        <input type="hidden" name="codigoArt" value="<?php echo (int)$prod['Codigo']; ?>">
+        <input type="hidden" name="cantidad" value="1">
+        <button class="btn btn-sm btn-primary">Agregar</button>
+    </form>
 
-                                                        <button class="btn btn-sm btn-primary">Agregar</button>
-                                                    </form>
+<?php elseif (!isset($_SESSION['id'])): ?>
 
-                                                <?php else: ?>
+    <!-- ✅ Invitado: pedir login -->
+    <a class="btn btn-sm btn-outline-primary" href="loginApp.php">
+        Iniciar sesión para comprar
+    </a>
 
-                                                    <!-- ✅ No logueado (o no es rol cliente): ofrecer login -->
-                                                    <a class="btn btn-sm btn-outline-primary" href="./pages/loginApp.php">
-                                                        Iniciar sesión para comprar
-                                                    </a>
+<?php else: ?>
 
-                                                <?php endif; ?>
+    <!-- ✅ Empresa u otro rol: no mostrar login -->
+    <span class="badge bg-secondary">Solo clientes pueden comprar</span>
+
+<?php endif; ?>
+
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
