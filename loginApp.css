@@ -166,3 +166,12 @@ main {
         position: relative;
     }
 }
+.demo-alert{
+    background:#d1e7dd;
+    color:#0f5132;
+    border:1px solid #badbcc;
+    padding:10px 12px;
+    border-radius:8px;
+    margin:10px 0 15px 0;
+    font-size: 14px;
+}
