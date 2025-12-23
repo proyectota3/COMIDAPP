@@ -127,7 +127,7 @@ try {
     // 8) ¿Debe cambiar contraseña?
     // =================================================
     if ($debeCambiarPass === 1) {
-        header("Location: ../pages/cambiarPass.php");
+        header("Location: ../pages/cambiarPassCli.php");
         exit();
     }
 
