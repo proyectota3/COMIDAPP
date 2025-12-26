@@ -88,9 +88,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
 
                     <?php
-                    // Aseguramos variable $carrito para evitar avisos
                     $carrito = $_SESSION['carrito'] ?? [];
-                    // Si no te llega $cantidadCarrito desde el controlador, lo calculamos:
                     $cantidadCarrito = $cantidadCarrito ?? array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
                     ?>
 
@@ -106,7 +104,6 @@ if (session_status() === PHP_SESSION_NONE) {
                             <?php endif; ?>
                         </a>
 
-                        <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
                         <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
                              aria-labelledby="carritoDropdown"
                              style="width: 420px; height: auto; max-height: none; overflow: visible; border-radius: 16px;">
@@ -119,7 +116,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <p class="text-center text-muted mb-0">El carrito está vacío.</p>
                             <?php else: ?>
 
-                                <!-- LISTA DE PRODUCTOS -->
                                 <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
                                     <?php foreach ($carrito as $idx => $item):
                                         $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
@@ -132,7 +128,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                                 <small>$<?php echo $precio; ?> x <?php echo $cantidad; ?></small>
                                             </div>
 
-                                            <!-- ELIMINAR ITEM -->
                                             <a href="./verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
                                                 <i class="fa-solid fa-trash"></i>
                                             </a>
@@ -140,7 +135,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                     <?php endforeach; ?>
                                 </ul>
 
-                                <!-- BOTONES -->
                                 <div class="d-grid gap-2">
                                     <a href="./verCarrito.php" class="btn btn-primary">Ver carrito</a>
 
@@ -222,15 +216,28 @@ if (session_status() === PHP_SESSION_NONE) {
     <div class="row">
         <div class="col-md-6">
 
-            <!-- MENSAJE DE ÉXITO -->
+            <!-- ✅ ALERTAS (OK / DUP / ERROR) -->
             <?php if (isset($_GET['ok']) && $_GET['ok'] == 1): ?>
                 <div class="alert alert-success">
-                    ¡Tu solicitud fue enviada correctamente! Un administrador la revisará.
+                    ✅ ¡Tu solicitud fue enviada correctamente! Un administrador la revisará.
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_GET['dup']) && $_GET['dup'] == 1): ?>
+                <div class="alert alert-warning">
+                    ⚠️ Ya existe una solicitud pendiente con ese RUT o mail. Un administrador la revisará.
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_GET['e'])): ?>
+                <div class="alert alert-danger">
+                    ❌ No se pudo enviar la solicitud:
+                    <strong><?php echo htmlspecialchars($_GET['e']); ?></strong>
                 </div>
             <?php endif; ?>
 
             <!-- FORMULARIO -->
-            <form method="POST" action="../controlador/solicitud.php">
+            <form method="POST" action="../controlador/solicitud.php" class="mt-3">
                 <input type="hidden" name="solicitud" value="1">
 
                 <div class="mb-3">

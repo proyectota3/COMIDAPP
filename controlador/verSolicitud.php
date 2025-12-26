@@ -1,7 +1,6 @@
 <?php
-include "../modelo/connectionComidApp.php";
+require_once "../modelo/connectionComidApp.php";
 
-// Crear una instancia de la clase y obtener la conexión
 $db = new DatabaseComidApp();
 $conexion = $db->getConnection();
 
@@ -9,18 +8,25 @@ if (!$conexion) {
     die("Error: No se pudo establecer la conexión a la base de datos.");
 }
 
-// Ejecutar la consulta
-$sql = $conexion->query("SELECT * FROM solicitud ");
+$sql = "
+    SELECT 
+        ID,
+        RUT,
+        Nombre,
+        Mail,
+        Telefono,
+        Fecha,
+        Estado
+    FROM solicitud
+    ORDER BY Fecha DESC, ID DESC
+";
 
-while ($datos = $sql->fetch(PDO::FETCH_OBJ)) {
-    echo "<tr>
-    <td>{$datos->id}</td>
+$stmt = $conexion->prepare($sql);
+$stmt->execute();
 
-    <td>{$datos->usuario_id}</td>
+$solicitudes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            <td>{$datos->fecha_solicitud}</td>
-
-            <td>{$datos->estado}</td>
-        </tr>";
-}
-?>
+// ✅ devolvemos la data para que la vista la use
+return [
+    "solicitudes" => $solicitudes
+];

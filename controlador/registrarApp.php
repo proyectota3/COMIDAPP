@@ -48,13 +48,28 @@ try {
     // rol cliente
     $rolCliente = 3;
 
-    // insertar
-   $stmt = $pdo->prepare("
-  INSERT INTO usuariosweb (idRol, Direccion, Mail, Nombre, pass, DebeCambiarPass)
-  VALUES (?, ?, ?, ?, ?, 1)
-");
+    // ✅ IMPORTANTE: transacción (así no queda a medias)
+    $pdo->beginTransaction();
 
+    // insertar en usuariosweb
+    $stmt = $pdo->prepare("
+        INSERT INTO usuariosweb (idRol, Direccion, Mail, Nombre, pass, DebeCambiarPass)
+        VALUES (?, ?, ?, ?, ?, 1)
+    ");
     $stmt->execute([$rolCliente, $direccion, $mail, $nombre, $hash]);
+
+    // ✅ obtener ID del usuario recién creado
+    $idUsuario = (int)$pdo->lastInsertId();
+
+    // ✅ crear registro en cliente (mínimo)
+    // OJO: si tu tabla cliente tiene más campos NOT NULL, agregalos acá.
+    $stmtCli = $pdo->prepare("
+        INSERT INTO cliente (IDCli, Apellido, CICli, FormaDePago)
+        VALUES (?, ?, ?, ?)
+    ");
+    $stmtCli->execute([$idUsuario, '', '', NULL]);
+
+    $pdo->commit();
 
     // DEMO: mostrar password una vez
     $_SESSION["mail_generado"] = $mail;
@@ -64,6 +79,7 @@ try {
     exit();
 
 } catch (Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     header("Location: ../loginApp.php?reg=error");
     exit();
 }
