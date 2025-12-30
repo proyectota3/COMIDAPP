@@ -51,13 +51,16 @@ SELECT
     c.IDLoc,
     l.Nombre AS LocalNombre,
 
-    -- Datos de checkout (repetidos por línea, pero nos sirven para mostrar por factura)
+    -- ✅ Datos del cliente
+    u.Nombre AS ClienteNombre,
+    u.Mail   AS ClienteMail,
+
+    -- Datos checkout
     c.FormaPago,
     c.Delivery,
     c.DireccionEntrega,
 
-    -- Estado de la factura:
-    -- 0 = Pendiente, 1 = Entregado
+    -- Estado
     c.Valida,
 
     -- Total por factura
@@ -69,15 +72,22 @@ JOIN vende v
     ON v.IDLoc = c.IDLoc
    AND v.CodigoArt = c.CodigoArt
    AND v.FechaIniPrecio = c.FechaIniPrecio
+
+-- ✅ JOIN cliente (acá está lo nuevo)
+JOIN usuariosweb u
+    ON u.ID = c.IDCli
+
 WHERE l.IDEmp = :idEmp
 GROUP BY
     c.NumFactura, c.Fecha, c.IDLoc, l.Nombre,
+    u.Nombre, u.Mail,
     c.FormaPago, c.Delivery, c.DireccionEntrega, c.Valida
 ORDER BY
-    c.Valida ASC,          -- primero pendientes (0), luego entregados (1)
+    c.Valida ASC,
     c.Fecha DESC,
     c.NumFactura DESC
 ";
+
 
 $stmt = $cn->prepare($sql);
 $stmt->execute([':idEmp' => $idEmpresa]);

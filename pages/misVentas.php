@@ -21,8 +21,6 @@ if (!isset($_SESSION['id'], $_SESSION['rol']) || (int)$_SESSION['rol'] !== 2) {
 }
 
 // ✅ 2) Ejecutar controlador (SOLO LECTURA)
-// Este controller debe devolver:
-//   ['pendientes' => [...], 'entregados' => [...]]
 $data = require_once "../controlador/verVentas.php";
 
 $pendientes = $data['pendientes'] ?? [];
@@ -200,7 +198,7 @@ $loc    = $_GET['loc'] ?? null;
                             </li>
 
                             <li>
-                          <a class="dropdown-item" href="./proximamente.php">
+                                <a class="dropdown-item" href="./proximamente.php">
                                     <i class="fa-solid fa-circle-info me-2"></i> Información
                                 </a>
                             </li>
@@ -315,6 +313,19 @@ $loc    = $_GET['loc'] ?? null;
                         </div>
                     <?php endif; ?>
 
+                    <!-- ✅ NUEVO: Cliente -->
+                    <?php if (!empty($p['ClienteNombre']) || !empty($p['ClienteMail'])): ?>
+                        <div class="small mt-2">
+                            <strong>Cliente:</strong>
+                            <?php echo htmlspecialchars($p['ClienteNombre'] ?? '-'); ?>
+                            <?php if (!empty($p['ClienteMail'])): ?>
+                                <span class="text-muted">
+                                    (<?php echo htmlspecialchars($p['ClienteMail']); ?>)
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- ✅ Botón que llama al UPDATE (confirmarPedido.php) -->
                     <form action="../controlador/confirmarPedido.php" method="POST" class="text-end mt-3">
                         <input type="hidden" name="NumFactura" value="<?php echo (int)$p['NumFactura']; ?>">
@@ -353,7 +364,21 @@ $loc    = $_GET['loc'] ?? null;
                             <?php echo htmlspecialchars($p['Fecha'] ?? ''); ?> |
                             <?php echo htmlspecialchars($p['LocalNombre'] ?? ''); ?>
                         </small>
+
+                        <!-- ✅ NUEVO: Cliente -->
+                        <?php if (!empty($p['ClienteNombre']) || !empty($p['ClienteMail'])): ?>
+                            <div class="small mt-1">
+                                <strong>Cliente:</strong>
+                                <?php echo htmlspecialchars($p['ClienteNombre'] ?? '-'); ?>
+                                <?php if (!empty($p['ClienteMail'])): ?>
+                                    <span class="text-muted">
+                                        (<?php echo htmlspecialchars($p['ClienteMail']); ?>)
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
+
                     <div class="fw-bold">
                         $<?php echo number_format((float)($p['Total'] ?? 0), 0, ',', '.'); ?>
                     </div>

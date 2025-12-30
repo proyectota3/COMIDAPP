@@ -215,7 +215,7 @@ $cantidadCarrito = count($carrito);
                             <?php endif; ?>
 
                             <li>
-                                <a class="dropdown-item" href="./pages/infoUsuario.php">
+                         <a class="dropdown-item" href="./pages/proximamente.php">
                                     <i class="fa-solid fa-circle-info me-2"></i> Información
                                 </a>
                             </li>
