@@ -1,22 +1,20 @@
 <?php
-// Ejecuto el controlador
-$data = require "../controlador/misLocalesControlador.php";
-
-// Variables que vienen desde el controlador
-$locales = $data["locales"];
-$cantidadCarrito = $data["cantidadCarrito"];
+// Iniciar sesión siempre antes de enviar HTML
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis locales - ComidAPP</title>
+    <title>COMIDAPP - Mantenimiento</title>
 
-    <!-- Bootstrap -->
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Iconos -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Tu CSS -->
@@ -76,9 +74,10 @@ $cantidadCarrito = $data["cantidadCarrito"];
 
             </ul>
 
-            <!-- BUSCADOR CENTRADO -->
-            <form class="d-flex mx-auto position-relative" style="width: 35%;" role="search">
-                <input class="form-control" id="buscar" type="search" placeholder="Buscar sucursal" aria-label="Search">
+            <!-- BUSCADOR CENTRADO (deshabilitado por mantenimiento) -->
+            <form class="d-flex mx-auto position-relative" style="width: 35%;" role="search" onsubmit="return false;">
+                <input class="form-control" id="buscar" type="search" placeholder="Buscar sucursal (en mantenimiento)"
+                       aria-label="Search" disabled>
                 <ul id="resultados" class="list-group position-absolute mt-2"
                     style="z-index: 1000; width: 100%;"></ul>
             </form>
@@ -90,10 +89,8 @@ $cantidadCarrito = $data["cantidadCarrito"];
                 <?php if (isset($_SESSION['id']) && isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
 
                     <?php
-                    // Aseguramos variable $carrito para evitar avisos
                     $carrito = $_SESSION['carrito'] ?? [];
-                    // Si no te llega $cantidadCarrito desde el controlador, lo calculamos:
-                    $cantidadCarrito = $cantidadCarrito ?? array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
+                    $cantidadCarrito = array_sum(array_map(fn($i)=> (int)($i['cantidad'] ?? 1), $carrito));
                     ?>
 
                     <li class="nav-item dropdown me-3">
@@ -108,7 +105,6 @@ $cantidadCarrito = $data["cantidadCarrito"];
                             <?php endif; ?>
                         </a>
 
-                        <!-- ⭐ VENTANA GRANDE DEL CARRITO ⭐ -->
                         <div class="dropdown-menu dropdown-menu-end p-4 shadow-lg"
                              aria-labelledby="carritoDropdown"
                              style="width: 420px; height: auto; max-height: none; overflow: visible; border-radius: 16px;">
@@ -117,43 +113,11 @@ $cantidadCarrito = $data["cantidadCarrito"];
                                 <i class="fa-solid fa-cart-shopping"></i> Mi carrito
                             </h5>
 
-                            <?php if (empty($carrito)): ?>
-                                <p class="text-center text-muted mb-0">El carrito está vacío.</p>
-                            <?php else: ?>
+                            <div class="alert alert-warning mb-0 text-center" style="border-radius: 12px;">
+                                <i class="fa-solid fa-screwdriver-wrench me-1"></i>
+                                Funcionalidad en mantenimiento por el momento.
+                            </div>
 
-                                <!-- LISTA DE PRODUCTOS -->
-                                <ul class="list-group mb-3" style="border-radius: 12px; overflow: hidden;">
-                                    <?php foreach ($carrito as $idx => $item):
-                                        $nombre   = htmlspecialchars($item['nombre'] ?? 'Producto');
-                                        $precio   = isset($item['precio']) ? (float)$item['precio'] : 0;
-                                        $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 1;
-                                    ?>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong><?php echo $nombre; ?></strong><br>
-                                                <small>$<?php echo $precio; ?> x <?php echo $cantidad; ?></small>
-                                            </div>
-
-                                            <!-- ELIMINAR ITEM -->
-                                            <a href="./verCarrito.php?eliminar=<?php echo $idx; ?>" class="text-danger">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </a>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-
-                                <!-- BOTONES -->
-                                <div class="d-grid gap-2">
-                                    <a href="./verCarrito.php" class="btn btn-primary">Ver carrito</a>
-
-                                    <form action="../controlador/finalizarCompra.php" method="POST" class="d-grid">
-                                        <button type="submit" class="btn btn-success">Confirmar compra</button>
-                                    </form>
-
-                                    <a href="./verCarrito.php?vaciar=1" class="btn btn-outline-danger">Vaciar carrito</a>
-                                </div>
-
-                            <?php endif; ?>
                         </div>
                     </li>
 
@@ -177,16 +141,8 @@ $cantidadCarrito = $data["cantidadCarrito"];
                                 </a>
                             </li>
 
-                            <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 3): ?>
-                                <li>
-                                    <a class="dropdown-item" href="./misCompras.php">
-                                        <i class="fa-solid fa-bag-shopping me-2"></i> Mis compras
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-
                             <li>
-        <a class="dropdown-item" href="./proximamente.php">
+                                <a class="dropdown-item" href="./proximamente.php">
                                     <i class="fa-solid fa-circle-info me-2"></i> Información
                                 </a>
                             </li>
@@ -215,49 +171,69 @@ $cantidadCarrito = $data["cantidadCarrito"];
     </div>
 </nav>
 
-<!-- ==================== CUERPO DE LA PÁGINA ==================== -->
 
-<div class="container mt-4">
-    <h2 class="mb-4">Mis locales</h2>
+<!-- CONTENIDO PRINCIPAL -->
+<main class="container mt-5 flex-grow-1">
 
-    <?php if (empty($locales)): ?>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-        <div class="alert alert-info">Todavía no tienes locales registrados.</div>
+            <div class="card shadow-lg border-0" style="border-radius: 18px;">
+                <div class="card-body p-5 text-center">
 
-    <?php else: ?>
-
-        <div class="row">
-            <?php foreach ($locales as $loc): ?>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100">
-
-                        <?php if (!empty($loc['Foto'])): ?>
-                            <img src="<?php echo htmlspecialchars($loc['Foto']); ?>" 
-                                class="card-img-top" alt="Foto del local">
-                        <?php endif; ?>
-
-                        <div class="card-body">
-                            <h5><?php echo htmlspecialchars($loc['Nombre']); ?></h5>
-                            <p><strong>Dirección: </strong><?php echo htmlspecialchars($loc['Direccion']); ?></p>
-                            <p><strong>Delivery: </strong><?php echo $loc['Delivery'] ? 'Sí' : 'No'; ?></p>
-
-                            <a href="./administrarLocal.php?id=<?php echo $loc['ID']; ?>" 
-                            class="btn btn-primary">Administrar menú</a>
-                        </div>
-
+                    <div class="mb-4">
+                        <i class="fa-solid fa-screwdriver-wrench fa-3x text-danger"></i>
                     </div>
+
+                    <h1 class="fw-bold mb-2">Estamos en mantenimiento</h1>
+                    <p class="text-muted mb-4" style="font-size: 1.05rem;">
+                        Esta sección todavía no está disponible. Estamos ajustando cosas para que quede impecable 😄
+                    </p>
+
+                    <div class="alert alert-warning text-start" style="border-radius: 14px;">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+                            <div>
+                                <strong>Por ahora no funciona:</strong>
+                                <ul class="mb-0">
+                                    <li>Acciones de compra/confirmación</li>
+                                    <li>Búsqueda de sucursales</li>
+                                    <li>Gestión de carrito desde esta página</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-md-row gap-2 justify-content-center mt-4">
+                        <a href="../indexApp.php" class="btn btn-danger px-4" style="border-radius: 12px;">
+                            <i class="fa-solid fa-house me-2"></i> Volver al inicio
+                        </a>
+
+                        <a href="./contacto.php" class="btn btn-outline-danger px-4" style="border-radius: 12px;">
+                            <i class="fa-solid fa-envelope me-2"></i> Contacto
+                        </a>
+                    </div>
+
+                    <p class="small text-muted mt-4 mb-0">
+                        Gracias por la paciencia 💪
+                    </p>
+
                 </div>
-            <?php endforeach; ?>
+            </div>
+
         </div>
+    </div>
 
-    <?php endif; ?>
+</main>
 
-</div>
-
-<footer class="footer bg-danger text-center text-white py-3 mt-4">
-    <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+<!-- FOOTER -->
+<footer class="footer bg-danger text-center text-white py-3 mt-5">
+    <div class="container">
+        <p class="mb-0">© 2024 ComidApp. Derechos Reservados, Uruguay.</p>
+    </div>
 </footer>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>

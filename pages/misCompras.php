@@ -177,7 +177,7 @@ $totalGastado = $data["totalGastado"] ?? 0;
                             <?php endif; ?>
 
                             <li>
-                                <a class="dropdown-item" href="./infoUsuario.php">
+                         <a class="dropdown-item" href="./proximamente.php">
                                     <i class="fa-solid fa-circle-info me-2"></i> Información
                                 </a>
                             </li>
